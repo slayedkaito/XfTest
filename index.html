@@ -1,0 +1,300 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Kejutan Spesial</title>
+    <style>
+        body {
+            margin: 0;
+            padding: 0;
+            font-family: 'Arial', sans-serif;
+            background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%);
+            height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            overflow: hidden;
+            transition: background 3s ease;
+        }
+        
+        .container {
+            text-align: center;
+            position: relative;
+            z-index: 10;
+        }
+        
+        .gift-box {
+            font-size: 100px;
+            cursor: pointer;
+            transition: transform 0.3s ease;
+            user-select: none;
+        }
+        
+        .gift-box:hover {
+            transform: scale(1.1);
+        }
+        
+        .message {
+            font-size: 24px;
+            color: #555;
+            margin-top: 20px;
+            opacity: 0;
+            transition: opacity 1s ease;
+        }
+        
+        .hidden {
+            display: none;
+        }
+        
+        .final-message {
+            font-size: 0;
+            color: #ff5e7e;
+            font-weight: bold;
+            opacity: 0;
+            transition: all 2s ease;
+            text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.2);
+        }
+        
+        .firework {
+            position: absolute;
+            width: 5px;
+            height: 5px;
+            border-radius: 50%;
+            background-color: #ff5e7e;
+            opacity: 0;
+            pointer-events: none;
+            z-index: 1;
+        }
+        
+        .heart {
+            position: absolute;
+            font-size: 20px;
+            color: #ff5e7e;
+            opacity: 0;
+            pointer-events: none;
+            z-index: 1;
+        }
+        
+        .balloon {
+            position: absolute;
+            font-size: 30px;
+            opacity: 0;
+            pointer-events: none;
+            animation-name: float;
+            animation-duration: 10s;
+            animation-timing-function: ease-in-out;
+            animation-iteration-count: infinite;
+            z-index: 1;
+        }
+        
+        @keyframes float {
+            0% { transform: translateY(100vh) rotate(0deg); }
+            100% { transform: translateY(-100vh) rotate(360deg); }
+        }
+        
+        .name {
+            font-weight: bold;
+            color: #ff5e7e;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="gift-box" id="giftBox">🎁</div>
+        <div class="message" id="message">Klik hadiah untuk membuka...</div>
+        <div class="final-message" id="finalMessage">
+            <h1>Selamat Ulang Tahun <span class="name" id="birthdayName">Mbak Lut!!!</span>!</h1>
+            <p>Semoga hari spesialmu dipenuhi kebahagiaan dan semua harapanmu menjadi kenyataan.(dan semoga dapat banyak uang :vs) ✨</p>
+        </div>
+    </div>
+
+    <script>
+        const giftBox = document.getElementById('giftBox');
+        const message = document.getElementById('message');
+        const finalMessage = document.getElementById('finalMessage');
+        const birthdayName = document.getElementById('birthdayName');
+        const body = document.body;
+        let clickCount = 0;
+        
+        // Nama orang yang berulang tahun - ganti sesuai keinginan
+        const name = "Mbak Lut";
+        birthdayName.textContent = name;
+        
+        // Urutan emoji hadiah
+        const giftEmojis = ['🎁', '✨', '🎊', '🎉', '🎂'];
+        
+        // Pesan yang muncul setiap klik
+        const messages = [
+            'Klik hadiah untuk membuka...',
+            'Sekali lagi...',
+            'Hampir sampai...',
+            'Satu kali lagi...',
+            'Tadaaaa!'
+        ];
+        
+        // Background gradients
+        const backgrounds = [
+            'linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%)',
+            'linear-gradient(135deg, #e0c3fc 0%, #8ec5fc 100%)',
+            'linear-gradient(135deg, #fccb90 0%, #d57eeb 100%)',
+            'linear-gradient(135deg, #43cea2 0%, #185a9d 100%)',
+            'linear-gradient(135deg, #ff758c 0%, #ff7eb3 100%)'
+        ];
+        
+        // Menampilkan pesan awal
+        message.style.opacity = '1';
+        
+        // Event listener untuk klik pada gift box
+        giftBox.addEventListener('click', () => {
+            clickCount++;
+            
+            if (clickCount <= giftEmojis.length) {
+                // Mengganti emoji hadiah
+                giftBox.textContent = giftEmojis[clickCount - 1];
+                
+                // Mengganti pesan
+                message.style.opacity = '0';
+                setTimeout(() => {
+                    message.textContent = messages[clickCount - 1];
+                    message.style.opacity = '1';
+                }, 500);
+                
+                // Mengganti background
+                body.style.background = backgrounds[clickCount - 1];
+                
+                // Membuat efek getaran
+                giftBox.style.animation = 'none';
+                void giftBox.offsetWidth; // Trigger reflow
+                giftBox.style.animation = 'shake 0.5s';
+                
+                // Menampilkan firework
+                createFireworks(20);
+            }
+            
+            if (clickCount === giftEmojis.length) {
+                // Menampilkan pesan terakhir setelah klik terakhir
+                setTimeout(() => {
+                    giftBox.classList.add('hidden');
+                    message.classList.add('hidden');
+                    finalMessage.style.opacity = '1';
+                    finalMessage.style.fontSize = '18px';
+                    
+                    // Tambahkan balon dan hati yang mengambang
+                    createFloatingElements('🎈', 20, 'balloon');
+                    createFloatingElements('❤️', 30, 'heart');
+                    
+                    // Tambahkan lingkaran konfeti
+                    createConfetti();
+                }, 1000);
+            }
+        });
+        
+        function createFireworks(count) {
+            for (let i = 0; i < count; i++) {
+                const firework = document.createElement('div');
+                firework.classList.add('firework');
+                document.body.appendChild(firework);
+                
+                // Posisi awal random
+                const startX = Math.random() * window.innerWidth;
+                const startY = Math.random() * window.innerHeight;
+                
+                firework.style.left = `${startX}px`;
+                firework.style.top = `${startY}px`;
+                
+                // Warna random
+                const hue = Math.floor(Math.random() * 360);
+                firework.style.backgroundColor = `hsl(${hue}, 100%, 65%)`;
+                
+                // Animasi
+                setTimeout(() => {
+                    firework.style.opacity = '1';
+                    firework.style.transform = `translate(${(Math.random() - 0.5) * 200}px, ${(Math.random() - 0.5) * 200}px) scale(${Math.random() * 3 + 1})`;
+                    firework.style.transition = 'all 0.8s ease-out';
+                    
+                    setTimeout(() => {
+                        firework.style.opacity = '0';
+                        setTimeout(() => {
+                            firework.remove();
+                        }, 800);
+                    }, 800);
+                }, Math.random() * 500);
+            }
+        }
+        
+        function createFloatingElements(emoji, count, className) {
+            for (let i = 0; i < count; i++) {
+                const element = document.createElement('div');
+                element.classList.add(className);
+                element.textContent = emoji;
+                document.body.appendChild(element);
+                
+                // Posisi awal random di bawah layar
+                const startX = Math.random() * window.innerWidth;
+                element.style.left = `${startX}px`;
+                element.style.top = `${window.innerHeight + 100}px`;
+                
+                // Delay animasi
+                const delay = Math.random() * 5;
+                element.style.animationDelay = `${delay}s`;
+                
+                // Opacity
+                element.style.opacity = '0.7';
+                
+                // Ukuran random
+                const size = Math.random() * 20 + 20;
+                element.style.fontSize = `${size}px`;
+            }
+        }
+        
+        function createConfetti() {
+            const colors = ['#ff7eb3', '#ff65a3', '#7afcff', '#feff9c', '#fff740'];
+            
+            for (let i = 0; i < 100; i++) {
+                const confetti = document.createElement('div');
+                confetti.classList.add('firework');
+                document.body.appendChild(confetti);
+                
+                // Posisi awal di tengah atas
+                const startX = window.innerWidth / 2;
+                const startY = window.innerHeight / 2;
+                
+                confetti.style.left = `${startX}px`;
+                confetti.style.top = `${startY}px`;
+                
+                // Warna random
+                const colorIndex = Math.floor(Math.random() * colors.length);
+                confetti.style.backgroundColor = colors[colorIndex];
+                
+                // Ukuran
+                const size = Math.random() * 8 + 4;
+                confetti.style.width = `${size}px`;
+                confetti.style.height = `${size}px`;
+                
+                // Bentuk random
+                if (Math.random() > 0.5) {
+                    confetti.style.borderRadius = '0';
+                }
+                
+                // Delay
+                const delay = Math.random() * 0.5;
+                
+                // Animasi
+                setTimeout(() => {
+                    confetti.style.opacity = '0.8';
+                    confetti.style.transform = `translate(${(Math.random() - 0.5) * window.innerWidth}px, ${Math.random() * window.innerHeight}px) rotate(${Math.random() * 360}deg)`;
+                    confetti.style.transition = `all ${Math.random() * 3 + 2}s ease-out`;
+                    
+                    setTimeout(() => {
+                        confetti.style.opacity = '0';
+                        setTimeout(() => {
+                            confetti.remove();
+                        }, 3000);
+                    }, 2000);
+                }, delay * 1000);
+            }
+        }
+    </script>
+</head>
+</html>
