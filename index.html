@@ -2,299 +2,612 @@
 <html lang="id">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Kejutan Spesial</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+    <title>Endless Runner: Fathan vs Panca</title>
     <style>
-        body {
-            margin: 0;
-            padding: 0;
-            font-family: 'Arial', sans-serif;
-            background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%);
-            height: 100vh;
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            overflow: hidden;
-            transition: background 3s ease;
+        body { margin: 0; overflow: hidden; background-color: #87CEEB; font-family: 'Segoe UI', sans-serif; }
+        #game-container { position: absolute; top: 0; left: 0; width: 100%; height: 100%; }
+        
+        /* UI Overlay */
+        #ui-layer {
+            position: absolute; top: 0; left: 0; width: 100%; height: 100%;
+            pointer-events: none; /* Biarkan klik tembus ke canvas kecuali tombol */
+            display: flex; flex-direction: column; justify-content: space-between;
         }
         
-        .container {
-            text-align: center;
-            position: relative;
+        #score-board {
+            padding: 20px; font-size: 24px; color: white; font-weight: bold;
+            text-shadow: 2px 2px 0 #000;
+        }
+
+        #start-screen, #game-over-screen {
+            position: absolute; top: 0; left: 0; width: 100%; height: 100%;
+            background: rgba(0,0,0,0.7);
+            display: flex; flex-direction: column; align-items: center; justify-content: center;
+            pointer-events: auto;
+            color: white;
             z-index: 10;
         }
+
+        .hidden { display: none !important; }
         
-        .gift-box {
-            font-size: 100px;
-            cursor: pointer;
-            transition: transform 0.3s ease;
-            user-select: none;
-        }
+        h1 { font-size: 40px; margin-bottom: 10px; color: #00ffff; text-shadow: 0 0 10px #00ffff; text-align: center;}
+        p { font-size: 18px; color: #ddd; text-align: center; max-width: 80%; }
         
-        .gift-box:hover {
-            transform: scale(1.1);
+        button {
+            padding: 15px 40px; font-size: 20px; margin-top: 20px;
+            background: #ff0055; color: white; border: none; border-radius: 50px;
+            cursor: pointer; box-shadow: 0 0 15px #ff0055; transition: transform 0.2s;
         }
-        
-        .message {
-            font-size: 24px;
-            color: #555;
-            margin-top: 20px;
-            opacity: 0;
-            transition: opacity 1s ease;
-        }
-        
-        .hidden {
-            display: none;
-        }
-        
-        .final-message {
-            font-size: 0;
-            color: #ff5e7e;
-            font-weight: bold;
-            opacity: 0;
-            transition: all 2s ease;
-            text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.2);
-        }
-        
-        .firework {
-            position: absolute;
-            width: 5px;
-            height: 5px;
-            border-radius: 50%;
-            background-color: #ff5e7e;
-            opacity: 0;
-            pointer-events: none;
-            z-index: 1;
-        }
-        
-        .heart {
-            position: absolute;
-            font-size: 20px;
-            color: #ff5e7e;
-            opacity: 0;
-            pointer-events: none;
-            z-index: 1;
-        }
-        
-        .balloon {
-            position: absolute;
-            font-size: 30px;
-            opacity: 0;
-            pointer-events: none;
-            animation-name: float;
-            animation-duration: 10s;
-            animation-timing-function: ease-in-out;
-            animation-iteration-count: infinite;
-            z-index: 1;
-        }
-        
-        @keyframes float {
-            0% { transform: translateY(100vh) rotate(0deg); }
-            100% { transform: translateY(-100vh) rotate(360deg); }
-        }
-        
-        .name {
-            font-weight: bold;
-            color: #ff5e7e;
-        }
+        button:active { transform: scale(0.95); }
+
+        /* Mobile Controls Hint */
+        .controls-hint { font-size: 14px; opacity: 0.8; margin-top: 10px; }
     </style>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
 </head>
 <body>
-    <div class="container">
-        <div class="gift-box" id="giftBox">🎁</div>
-        <div class="message" id="message">Klik hadiah untuk membuka...</div>
-        <div class="final-message" id="finalMessage">
-            <h1>Selamat Ulang Tahun <span class="name" id="birthdayName">Mbak Lut!!!</span>!</h1>
-            <p>Semoga hari spesialmu dipenuhi kebahagiaan dan semua harapanmu menjadi kenyataan.(dan semoga dapat banyak uang :vs) ✨</p>
-        </div>
+
+    <div id="game-container"></div>
+
+    <div id="ui-layer">
+        <div id="score-board">SCORE: <span id="score">0</span></div>
     </div>
 
-    <script>
-        const giftBox = document.getElementById('giftBox');
-        const message = document.getElementById('message');
-        const finalMessage = document.getElementById('finalMessage');
-        const birthdayName = document.getElementById('birthdayName');
-        const body = document.body;
-        let clickCount = 0;
-        
-        // Nama orang yang berulang tahun - ganti sesuai keinginan
-        const name = "Mbak Lut";
-        birthdayName.textContent = name;
-        
-        // Urutan emoji hadiah
-        const giftEmojis = ['🎁', '✨', '🎊', '🎉', '🎂'];
-        
-        // Pesan yang muncul setiap klik
-        const messages = [
-            'Klik hadiah untuk membuka...',
-            'Sekali lagi...',
-            'Hampir sampai...',
-            'Satu kali lagi...',
-            'Tadaaaa!'
-        ];
-        
-        // Background gradients
-        const backgrounds = [
-            'linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%)',
-            'linear-gradient(135deg, #e0c3fc 0%, #8ec5fc 100%)',
-            'linear-gradient(135deg, #fccb90 0%, #d57eeb 100%)',
-            'linear-gradient(135deg, #43cea2 0%, #185a9d 100%)',
-            'linear-gradient(135deg, #ff758c 0%, #ff7eb3 100%)'
-        ];
-        
-        // Menampilkan pesan awal
-        message.style.opacity = '1';
-        
-        // Event listener untuk klik pada gift box
-        giftBox.addEventListener('click', () => {
-            clickCount++;
-            
-            if (clickCount <= giftEmojis.length) {
-                // Mengganti emoji hadiah
-                giftBox.textContent = giftEmojis[clickCount - 1];
-                
-                // Mengganti pesan
-                message.style.opacity = '0';
-                setTimeout(() => {
-                    message.textContent = messages[clickCount - 1];
-                    message.style.opacity = '1';
-                }, 500);
-                
-                // Mengganti background
-                body.style.background = backgrounds[clickCount - 1];
-                
-                // Membuat efek getaran
-                giftBox.style.animation = 'none';
-                void giftBox.offsetWidth; // Trigger reflow
-                giftBox.style.animation = 'shake 0.5s';
-                
-                // Menampilkan firework
-                createFireworks(20);
-            }
-            
-            if (clickCount === giftEmojis.length) {
-                // Menampilkan pesan terakhir setelah klik terakhir
-                setTimeout(() => {
-                    giftBox.classList.add('hidden');
-                    message.classList.add('hidden');
-                    finalMessage.style.opacity = '1';
-                    finalMessage.style.fontSize = '18px';
-                    
-                    // Tambahkan balon dan hati yang mengambang
-                    createFloatingElements('🎈', 20, 'balloon');
-                    createFloatingElements('❤️', 30, 'heart');
-                    
-                    // Tambahkan lingkaran konfeti
-                    createConfetti();
-                }, 1000);
-            }
-        });
-        
-        function createFireworks(count) {
-            for (let i = 0; i < count; i++) {
-                const firework = document.createElement('div');
-                firework.classList.add('firework');
-                document.body.appendChild(firework);
-                
-                // Posisi awal random
-                const startX = Math.random() * window.innerWidth;
-                const startY = Math.random() * window.innerHeight;
-                
-                firework.style.left = `${startX}px`;
-                firework.style.top = `${startY}px`;
-                
-                // Warna random
-                const hue = Math.floor(Math.random() * 360);
-                firework.style.backgroundColor = `hsl(${hue}, 100%, 65%)`;
-                
-                // Animasi
-                setTimeout(() => {
-                    firework.style.opacity = '1';
-                    firework.style.transform = `translate(${(Math.random() - 0.5) * 200}px, ${(Math.random() - 0.5) * 200}px) scale(${Math.random() * 3 + 1})`;
-                    firework.style.transition = 'all 0.8s ease-out';
-                    
-                    setTimeout(() => {
-                        firework.style.opacity = '0';
-                        setTimeout(() => {
-                            firework.remove();
-                        }, 800);
-                    }, 800);
-                }, Math.random() * 500);
+    <div id="start-screen">
+        <h1>RUN FATHAN RUN!</h1>
+        <p>Hindari mobil, lompati palang, ambil koin!</p>
+        <p class="controls-hint">Desktop: Panah Keyboard | Mobile: Swipe Layar</p>
+        <button id="start-btn">MAIN SEKARANG</button>
+    </div>
+
+    <div id="game-over-screen" class="hidden">
+        <h1>TERTANGKAP PANCA!</h1>
+        <p>Skor Akhir: <span id="final-score">0</span></p>
+        <button id="restart-btn">MAIN LAGI</button>
+    </div>
+
+<script>
+/**
+ * SENIOR GAME DEVELOPER NOTES:
+ * Kode ini dirancang modular dalam satu file.
+ * 1. AudioSystem: Menangani Web Audio API.
+ * 2. GameWorld: Menangani Three.js scene, lights, environment.
+ * 3. Player & Entities: Menangani logika karakter.
+ * 4. InputManager: Swipe & Keyboard handling.
+ * 5. GameLoop: Main update cycle.
+ */
+
+// --- KONFIGURASI GLOBAL ---
+const CONFIG = {
+    laneWidth: 2.5, // Lebar jalur
+    speedBase: 0.4, // Kecepatan awal
+    speedMax: 0.8,
+    gravity: 0.03,
+    jumpPower: 0.6,
+    colors: {
+        fathan: 0x00ffff, // Neon Blue
+        panca: 0x8b4513,  // Brown
+        coin: 0xffd700,
+        sky: 0x87CEEB,
+        fog: 0xa0d8ef
+    }
+};
+
+// --- AUDIO SYSTEM (Synthesizer) ---
+class AudioSynth {
+    constructor() {
+        this.ctx = null;
+        this.isMuted = false;
+    }
+
+    init() {
+        if (!this.ctx) {
+            this.ctx = new (window.AudioContext || window.webkitAudioContext)();
+            this.bgmOsc = null;
+        }
+        if (this.ctx.state === 'suspended') this.ctx.resume();
+    }
+
+    playTone(freq, type, duration, vol = 0.1) {
+        if (!this.ctx || this.isMuted) return;
+        const osc = this.ctx.createOscillator();
+        const gain = this.ctx.createGain();
+        osc.type = type;
+        osc.frequency.setValueAtTime(freq, this.ctx.currentTime);
+        gain.gain.setValueAtTime(vol, this.ctx.currentTime);
+        gain.gain.exponentialRampToValueAtTime(0.01, this.ctx.currentTime + duration);
+        osc.connect(gain);
+        gain.connect(this.ctx.destination);
+        osc.start();
+        osc.stop(this.ctx.currentTime + duration);
+    }
+
+    playCoin() { this.playTone(1200, 'sine', 0.2, 0.2); this.playTone(1800, 'sine', 0.2, 0.2); }
+    playJump() { this.playTone(300, 'triangle', 0.2, 0.1); }
+    playCrash() { this.playTone(100, 'sawtooth', 0.5, 0.3); }
+
+    startBGM() {
+        // Simple beat simulation using intervals (Low budget BGM)
+        if(this.bgmInterval) clearInterval(this.bgmInterval);
+        let beat = 0;
+        this.bgmInterval = setInterval(() => {
+            if(!window.gameActive) return;
+            beat++;
+            if(beat % 4 === 0) this.playTone(150, 'square', 0.1, 0.05); // Kick
+            if(beat % 8 === 4) this.playTone(400, 'sine', 0.1, 0.02); // Hat
+        }, 250);
+    }
+    stopBGM() { clearInterval(this.bgmInterval); }
+}
+
+const audio = new AudioSynth();
+
+// --- HELPER: TEXTURE GENERATOR (Nametags) ---
+function createTextSprite(message, color) {
+    const canvas = document.createElement('canvas');
+    const ctx = canvas.getContext('2d');
+    canvas.width = 512; canvas.height = 256;
+    
+    // Background bubbles (optional, keeping it transparent for clean look)
+    ctx.fillStyle = "rgba(0, 0, 0, 0.5)";
+    ctx.roundRect(56, 56, 400, 144, 20);
+    ctx.fill();
+
+    // Text
+    ctx.font = "Bold 100px Arial";
+    ctx.fillStyle = color;
+    ctx.textAlign = "center";
+    ctx.textBaseline = "middle";
+    ctx.fillText(message, 256, 128);
+
+    const texture = new THREE.CanvasTexture(canvas);
+    const material = new THREE.SpriteMaterial({ map: texture, transparent: true });
+    const sprite = new THREE.Sprite(material);
+    sprite.scale.set(4, 2, 1);
+    return sprite;
+}
+
+// --- GAME LOGIC ---
+
+// Variabel Global Game
+let scene, camera, renderer;
+let fathan, panca;
+let obstacles = [], coins = [], buildings = [], roadStripes = [];
+let gameSpeed = CONFIG.speedBase;
+let score = 0;
+let animationId;
+let frameCount = 0;
+
+// Init Three.js
+function init3D() {
+    const container = document.getElementById('game-container');
+
+    // Scene
+    scene = new THREE.Scene();
+    scene.background = new THREE.Color(CONFIG.colors.sky);
+    scene.fog = new THREE.Fog(CONFIG.colors.fog, 20, 90);
+
+    // Camera
+    camera = new THREE.PerspectiveCamera(60, window.innerWidth / window.innerHeight, 0.1, 200);
+    camera.position.set(0, 5, 8);
+    camera.lookAt(0, 2, 0);
+
+    // Renderer
+    renderer = new THREE.WebGLRenderer({ antialias: true });
+    renderer.setSize(window.innerWidth, window.innerHeight);
+    renderer.shadowMap.enabled = true;
+    renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+    container.appendChild(renderer.domElement);
+
+    // Lighting
+    const hemiLight = new THREE.HemisphereLight(0xffffff, 0x444444, 0.6);
+    scene.add(hemiLight);
+
+    const dirLight = new THREE.DirectionalLight(0xffffff, 0.8);
+    dirLight.position.set(10, 20, 10);
+    dirLight.castShadow = true;
+    dirLight.shadow.mapSize.width = 1024;
+    dirLight.shadow.mapSize.height = 1024;
+    dirLight.shadow.camera.left = -20;
+    dirLight.shadow.camera.right = 20;
+    dirLight.shadow.camera.top = 20;
+    dirLight.shadow.camera.bottom = -20;
+    scene.add(dirLight);
+
+    // Ground (Road)
+    const roadGeo = new THREE.PlaneGeometry(50, 200);
+    const roadMat = new THREE.MeshPhongMaterial({ color: 0x333333 });
+    const road = new THREE.Mesh(roadGeo, roadMat);
+    road.rotation.x = -Math.PI / 2;
+    road.position.z = -50;
+    road.receiveShadow = true;
+    scene.add(road);
+
+    // Pembuatan Karakter
+    createPlayer();
+    createChaser();
+
+    // Event Listener Resize
+    window.addEventListener('resize', onWindowResize, false);
+}
+
+// --- KARAKTER: FATHAN ---
+function createPlayer() {
+    // === CATATAN UNTUK PENGGANTIAN MODEL DI MASA DEPAN ===
+    // Jika ingin mengganti dengan GLTF:
+    // 1. Hapus kode MeshGroup di bawah.
+    // 2. Gunakan GLTFLoader untuk load file .glb.
+    // 3. Pastikan model di-add ke `fathan.mesh`.
+    // ======================================================
+
+    const group = new THREE.Group();
+
+    // Body (Neon Blue Box)
+    const geo = new THREE.BoxGeometry(1, 1, 1);
+    const mat = new THREE.MeshStandardMaterial({ color: CONFIG.colors.fathan, emissive: 0x0044aa, emissiveIntensity: 0.5 });
+    const body = new THREE.Mesh(geo, mat);
+    body.position.y = 0.5;
+    body.castShadow = true;
+    group.add(body);
+
+    // Nametag "Fathan"
+    const nameTag = createTextSprite("Fathan", "#00ffff");
+    nameTag.position.set(0, 2, 0);
+    group.add(nameTag);
+
+    scene.add(group);
+
+    fathan = {
+        mesh: group,
+        lane: 0, // -1 (Kiri), 0 (Tengah), 1 (Kanan)
+        targetX: 0,
+        yVelocity: 0,
+        isJumping: false,
+        isRolling: false,
+        originalScaleY: 1
+    };
+}
+
+// --- ANTAGONIS: PANCA ---
+function createChaser() {
+    const group = new THREE.Group();
+
+    // Body (Dog - Red/Brown)
+    const geo = new THREE.BoxGeometry(0.8, 0.6, 1.2);
+    const mat = new THREE.MeshStandardMaterial({ color: CONFIG.colors.panca });
+    const body = new THREE.Mesh(geo, mat);
+    body.position.y = 0.3;
+    body.castShadow = true;
+    group.add(body);
+
+    // Ears (Simple)
+    const earGeo = new THREE.BoxGeometry(0.2, 0.3, 0.2);
+    const ear1 = new THREE.Mesh(earGeo, mat); ear1.position.set(-0.3, 0.7, 0.4);
+    const ear2 = new THREE.Mesh(earGeo, mat); ear2.position.set(0.3, 0.7, 0.4);
+    group.add(ear1); group.add(ear2);
+
+    // Nametag "Panca"
+    const nameTag = createTextSprite("Panca", "#ff4444");
+    nameTag.position.set(0, 1.5, 0);
+    group.add(nameTag);
+
+    scene.add(group);
+
+    panca = {
+        mesh: group,
+        zOffset: 4, // Jarak di belakang player
+        lane: 0,
+        currentX: 0
+    };
+}
+
+// --- OBSTACLES & ENVIRONMENT ---
+
+function spawnObstacle() {
+    // Tipe: 0 = Box Statis, 1 = Mobil
+    const type = Math.random() > 0.5 ? 'car' : 'barrier';
+    const lane = Math.floor(Math.random() * 3) - 1; // -1, 0, 1
+    const xPos = lane * CONFIG.laneWidth;
+    const zPos = -100; // Muncul jauh di depan
+
+    let mesh;
+
+    if (type === 'car') {
+        // Mobil Bergerak
+        const geo = new THREE.BoxGeometry(1.2, 1, 2.5);
+        const mat = new THREE.MeshStandardMaterial({ color: Math.random() * 0xffffff });
+        mesh = new THREE.Mesh(geo, mat);
+        mesh.userData = { type: 'car', speed: 0.2 };
+    } else {
+        // Barrier
+        const geo = new THREE.BoxGeometry(2, 1.5, 0.5);
+        const mat = new THREE.MeshStandardMaterial({ color: 0xff5500 });
+        mesh = new THREE.Mesh(geo, mat);
+        mesh.userData = { type: 'barrier' };
+    }
+
+    mesh.position.set(xPos, 0.5, zPos);
+    mesh.castShadow = true;
+    scene.add(mesh);
+    obstacles.push(mesh);
+}
+
+function spawnCoin() {
+    const lane = Math.floor(Math.random() * 3) - 1;
+    const xPos = lane * CONFIG.laneWidth;
+    
+    // Koin Geometri
+    const geo = new THREE.CylinderGeometry(0.4, 0.4, 0.1, 16);
+    const mat = new THREE.MeshStandardMaterial({ color: CONFIG.colors.coin, metalness: 0.8, roughness: 0.2 });
+    const mesh = new THREE.Mesh(geo, mat);
+    
+    mesh.rotation.x = Math.PI / 2;
+    mesh.position.set(xPos, 1, -100);
+    
+    // Animasi putar disimpan di userData
+    mesh.userData = { rotSpeed: 0.1 };
+    
+    scene.add(mesh);
+    coins.push(mesh);
+}
+
+function spawnBuilding() {
+    // Gedung di kiri (-x) atau kanan (+x)
+    const side = Math.random() > 0.5 ? 1 : -1;
+    const xDist = 6 + Math.random() * 5;
+    const xPos = side * xDist;
+    const height = 5 + Math.random() * 15;
+    
+    const geo = new THREE.BoxGeometry(4, height, 4);
+    const mat = new THREE.MeshStandardMaterial({ color: 0x888888 });
+    const mesh = new THREE.Mesh(geo, mat);
+    
+    mesh.position.set(xPos, height/2, -120);
+    scene.add(mesh);
+    buildings.push(mesh);
+}
+
+// --- INPUT HANDLING (Keyboard & Swipe) ---
+function handleInput(action) {
+    if (!window.gameActive) return;
+
+    if (action === 'left' && fathan.lane > -1) {
+        fathan.lane--;
+    } else if (action === 'right' && fathan.lane < 1) {
+        fathan.lane++;
+    } else if (action === 'up' && !fathan.isJumping) {
+        fathan.yVelocity = CONFIG.jumpPower;
+        fathan.isJumping = true;
+        audio.playJump();
+    } else if (action === 'down' && !fathan.isRolling) {
+        fathan.isRolling = true;
+        // Perkecil karakter
+        fathan.mesh.children[0].scale.y = 0.5;
+        fathan.mesh.children[0].position.y = 0.25;
+        setTimeout(() => {
+            fathan.mesh.children[0].scale.y = 1;
+            fathan.mesh.children[0].position.y = 0.5;
+            fathan.isRolling = false;
+        }, 800);
+    }
+    
+    fathan.targetX = fathan.lane * CONFIG.laneWidth;
+}
+
+// Keyboard Listener
+document.addEventListener('keydown', (e) => {
+    switch(e.key) {
+        case 'ArrowLeft': handleInput('left'); break;
+        case 'ArrowRight': handleInput('right'); break;
+        case 'ArrowUp': handleInput('up'); break;
+        case 'ArrowDown': handleInput('down'); break;
+    }
+});
+
+// Touch/Swipe Listener
+let touchStartX = 0;
+let touchStartY = 0;
+document.addEventListener('touchstart', (e) => {
+    touchStartX = e.changedTouches[0].screenX;
+    touchStartY = e.changedTouches[0].screenY;
+}, false);
+
+document.addEventListener('touchend', (e) => {
+    const touchEndX = e.changedTouches[0].screenX;
+    const touchEndY = e.changedTouches[0].screenY;
+    
+    const diffX = touchEndX - touchStartX;
+    const diffY = touchEndY - touchStartY;
+
+    if (Math.abs(diffX) > Math.abs(diffY)) {
+        // Horizontal
+        if (Math.abs(diffX) > 30) {
+            handleInput(diffX > 0 ? 'right' : 'left');
+        }
+    } else {
+        // Vertical
+        if (Math.abs(diffY) > 30) {
+            handleInput(diffY > 0 ? 'down' : 'up');
+        }
+    }
+}, false);
+
+// --- UPDATE LOOP ---
+function update() {
+    if (!window.gameActive) return;
+
+    // 1. Update Player Movement (Lerp X)
+    fathan.mesh.position.x += (fathan.targetX - fathan.mesh.position.x) * 0.15;
+
+    // Player Gravity & Jump
+    fathan.mesh.position.y += fathan.yVelocity;
+    if (fathan.mesh.position.y > 0) {
+        fathan.yVelocity -= CONFIG.gravity;
+    } else {
+        fathan.mesh.position.y = 0;
+        fathan.yVelocity = 0;
+        fathan.isJumping = false;
+    }
+
+    // Animasi Lari (Bobbing)
+    if(!fathan.isJumping) {
+        fathan.mesh.children[0].position.y = (fathan.isRolling ? 0.25 : 0.5) + Math.sin(Date.now() * 0.02) * 0.05;
+    }
+
+    // 2. Update Panca (Chaser)
+    // Panca mengejar di lane yang sama tapi sedikit delay
+    panca.currentX += (fathan.mesh.position.x - panca.currentX) * 0.05;
+    panca.mesh.position.set(panca.currentX, 0, fathan.mesh.position.z + panca.zOffset);
+    panca.mesh.children[0].position.y = 0.3 + Math.sin(Date.now() * 0.03) * 0.1; // Lari liar
+
+    // 3. Move World Objects (Illusion of moving forward)
+    // Alih-alih player maju (floating point error resiko), kita gerakkan dunia mundur
+    const moveSpeed = gameSpeed;
+
+    // Update Obstacles
+    for (let i = obstacles.length - 1; i >= 0; i--) {
+        const obj = obstacles[i];
+        obj.position.z += moveSpeed;
+        if (obj.userData.type === 'car') obj.position.z += obj.userData.speed; // Mobil ngebut ke arah kita
+
+        // Collision Check (AABB Sederhana)
+        const dx = Math.abs(obj.position.x - fathan.mesh.position.x);
+        const dz = Math.abs(obj.position.z - fathan.mesh.position.z);
+        const dy = Math.abs(obj.position.y - fathan.mesh.position.y); // Untuk cek lompat/roll
+
+        // Hitbox toleransi
+        if (dz < 1.0 && dx < 0.8) {
+            if (fathan.isJumping && obj.userData.type === 'car' && dy > 0.8) {
+                // Berhasil melompati mobil (opsional logika)
+            } else {
+                gameOver();
             }
         }
-        
-        function createFloatingElements(emoji, count, className) {
-            for (let i = 0; i < count; i++) {
-                const element = document.createElement('div');
-                element.classList.add(className);
-                element.textContent = emoji;
-                document.body.appendChild(element);
-                
-                // Posisi awal random di bawah layar
-                const startX = Math.random() * window.innerWidth;
-                element.style.left = `${startX}px`;
-                element.style.top = `${window.innerHeight + 100}px`;
-                
-                // Delay animasi
-                const delay = Math.random() * 5;
-                element.style.animationDelay = `${delay}s`;
-                
-                // Opacity
-                element.style.opacity = '0.7';
-                
-                // Ukuran random
-                const size = Math.random() * 20 + 20;
-                element.style.fontSize = `${size}px`;
-            }
+
+        // Cleanup
+        if (obj.position.z > 10) {
+            scene.remove(obj);
+            obstacles.splice(i, 1);
         }
+    }
+
+    // Update Coins
+    for (let i = coins.length - 1; i >= 0; i--) {
+        const coin = coins[i];
+        coin.position.z += moveSpeed;
+        coin.rotation.y += 0.05; // Putar koin
         
-        function createConfetti() {
-            const colors = ['#ff7eb3', '#ff65a3', '#7afcff', '#feff9c', '#fff740'];
-            
-            for (let i = 0; i < 100; i++) {
-                const confetti = document.createElement('div');
-                confetti.classList.add('firework');
-                document.body.appendChild(confetti);
-                
-                // Posisi awal di tengah atas
-                const startX = window.innerWidth / 2;
-                const startY = window.innerHeight / 2;
-                
-                confetti.style.left = `${startX}px`;
-                confetti.style.top = `${startY}px`;
-                
-                // Warna random
-                const colorIndex = Math.floor(Math.random() * colors.length);
-                confetti.style.backgroundColor = colors[colorIndex];
-                
-                // Ukuran
-                const size = Math.random() * 8 + 4;
-                confetti.style.width = `${size}px`;
-                confetti.style.height = `${size}px`;
-                
-                // Bentuk random
-                if (Math.random() > 0.5) {
-                    confetti.style.borderRadius = '0';
-                }
-                
-                // Delay
-                const delay = Math.random() * 0.5;
-                
-                // Animasi
-                setTimeout(() => {
-                    confetti.style.opacity = '0.8';
-                    confetti.style.transform = `translate(${(Math.random() - 0.5) * window.innerWidth}px, ${Math.random() * window.innerHeight}px) rotate(${Math.random() * 360}deg)`;
-                    confetti.style.transition = `all ${Math.random() * 3 + 2}s ease-out`;
-                    
-                    setTimeout(() => {
-                        confetti.style.opacity = '0';
-                        setTimeout(() => {
-                            confetti.remove();
-                        }, 3000);
-                    }, 2000);
-                }, delay * 1000);
-            }
+        // Collision
+        const dx = Math.abs(coin.position.x - fathan.mesh.position.x);
+        const dz = Math.abs(coin.position.z - fathan.mesh.position.z);
+        
+        if (dz < 1.0 && dx < 0.8 && !fathan.isJumping) { // Ambil koin
+            score += 10;
+            updateUI();
+            audio.playCoin();
+            scene.remove(coin);
+            coins.splice(i, 1);
+            continue;
         }
-    </script>
-</head>
+
+        if (coin.position.z > 10) {
+            scene.remove(coin);
+            coins.splice(i, 1);
+        }
+    }
+
+    // Update Buildings
+    for (let i = buildings.length - 1; i >= 0; i--) {
+        buildings[i].position.z += moveSpeed;
+        if (buildings[i].position.z > 20) {
+            scene.remove(buildings[i]);
+            buildings.splice(i, 1);
+        }
+    }
+
+    // 4. Spawning Logic
+    frameCount++;
+    if (frameCount % 60 === 0) { // Setiap detik (approx)
+        score += 1;
+        updateUI();
+        if (gameSpeed < CONFIG.speedMax) gameSpeed += 0.0001; // Tambah cepat perlahan
+    }
+
+    if (frameCount % 50 === 0) spawnBuilding(); // Gedung sering
+    
+    // Random spawn rintangan
+    if (frameCount % Math.max(30, 100 - Math.floor(score/10)) === 0) {
+        if (Math.random() > 0.3) spawnObstacle();
+        else spawnCoin();
+    }
+}
+
+function animate() {
+    animationId = requestAnimationFrame(animate);
+    update();
+    renderer.render(scene, camera);
+}
+
+// --- GAME STATE CONTROL ---
+
+function updateUI() {
+    document.getElementById('score').innerText = score;
+}
+
+function startGame() {
+    // Reset Variables
+    score = 0;
+    gameSpeed = CONFIG.speedBase;
+    fathan.lane = 0;
+    fathan.targetX = 0;
+    fathan.mesh.position.set(0,0,0);
+    panca.currentX = 0;
+    
+    // Clear Old Objects
+    obstacles.forEach(o => scene.remove(o)); obstacles = [];
+    coins.forEach(c => scene.remove(c)); coins = [];
+    buildings.forEach(b => scene.remove(b)); buildings = [];
+
+    // Audio Start
+    audio.init();
+    audio.startBGM();
+
+    // UI
+    document.getElementById('start-screen').classList.add('hidden');
+    document.getElementById('game-over-screen').classList.add('hidden');
+    
+    window.gameActive = true;
+    frameCount = 0;
+}
+
+function gameOver() {
+    window.gameActive = false;
+    audio.playCrash();
+    audio.stopBGM();
+    
+    // Animasi Panca menangkap Fathan
+    panca.mesh.position.z = fathan.mesh.position.z - 0.5;
+    panca.mesh.position.x = fathan.mesh.position.x;
+    
+    document.getElementById('final-score').innerText = score;
+    document.getElementById('game-over-screen').classList.remove('hidden');
+}
+
+function onWindowResize() {
+    camera.aspect = window.innerWidth / window.innerHeight;
+    camera.updateProjectionMatrix();
+    renderer.setSize(window.innerWidth, window.innerHeight);
+}
+
+// Entry Point
+init3D();
+animate();
+
+// Button Listeners
+document.getElementById('start-btn').addEventListener('click', startGame);
+document.getElementById('restart-btn').addEventListener('click', startGame);
+
+</script>
+</body>
 </html>
