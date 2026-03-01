@@ -6,12 +6,18 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>GPU Ultimate Stress Test V3</title>
     <style>
+        @import url('https://fonts.googleapis.com/css2?family=Nunito:wght@400;700;800&display=swap');
+
+        * {
+            box-sizing: border-box;
+        }
+
         body {
             margin: 0;
             overflow: hidden;
-            background-color: #000;
-            color: #00ffcc;
-            font-family: 'Courier New', Courier, monospace;
+            background-color: #1a0510;
+            color: #ffe6f0;
+            font-family: 'Nunito', sans-serif;
             user-select: none;
         }
 
@@ -23,41 +29,76 @@
 
         #hud {
             position: absolute;
-            top: 15px;
-            left: 15px;
-            background: rgba(10, 10, 10, 0.85);
-            border: 1px solid #ff3366;
-            padding: 15px;
-            border-radius: 8px;
-            box-shadow: 0 0 20px rgba(255, 51, 102, 0.4);
-            backdrop-filter: blur(8px);
-            width: 300px;
-            max-width: 85vw;
+            top: 5vh;
+            left: 50%;
+            transform: translateX(-50%);
+            background: rgba(255, 182, 193, 0.15);
+            border: 1px solid rgba(255, 105, 180, 0.4);
+            padding: 20px;
+            border-radius: 20px;
+            box-shadow: 0 8px 32px rgba(255, 105, 180, 0.3);
+            backdrop-filter: blur(12px);
+            -webkit-backdrop-filter: blur(12px);
+            width: 340px;
+            max-width: 90vw;
+            transition: all 0.3s ease;
+        }
+
+        #hud::before {
+            content: '';
+            position: absolute;
+            top: -2px;
+            left: -2px;
+            right: -2px;
+            bottom: -2px;
+            background: linear-gradient(45deg, #ffb6c1, #ff1493, #ff69b4, #ff85a2);
+            z-index: -1;
+            filter: blur(15px);
+            opacity: 0.3;
+            border-radius: 22px;
+            animation: pulse-glow 3s infinite alternate;
+        }
+
+        @keyframes pulse-glow {
+            0% {
+                opacity: 0.2;
+            }
+
+            100% {
+                opacity: 0.5;
+            }
         }
 
         h2 {
-            margin: 0 0 10px 0;
-            font-size: 1.2rem;
-            color: #ff3366;
+            margin: 0 0 15px 0;
+            font-size: 1.4rem;
+            color: #ffb6c1;
             text-transform: uppercase;
-            text-shadow: 0 0 5px #ff3366;
+            text-shadow: 0 0 10px rgba(255, 105, 180, 0.8), 0 0 20px rgba(255, 105, 180, 0.4);
+            text-align: center;
+            letter-spacing: 1px;
+            font-weight: 800;
         }
 
         .stat-row {
-            margin-bottom: 8px;
-            font-size: 0.9rem;
-            border-bottom: 1px solid #333;
-            padding-bottom: 4px;
+            margin-bottom: 10px;
+            font-size: 0.95rem;
+            border-bottom: 1px dashed rgba(255, 105, 180, 0.3);
+            padding-bottom: 6px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
         }
 
         .stat-value {
-            font-weight: bold;
+            font-weight: 700;
             color: #fff;
-            float: right;
+            text-shadow: 0 0 5px rgba(255, 255, 255, 0.5);
         }
 
         .fps-high {
-            color: #00ffcc;
+            color: #ffb6c1;
+            text-shadow: 0 0 8px #ffb6c1;
         }
 
         .fps-med {
@@ -65,113 +106,490 @@
         }
 
         .fps-low {
-            color: #ff3366;
-            text-shadow: 0 0 5px #ff3366;
+            color: #ff1493;
+            text-shadow: 0 0 8px #ff1493;
         }
 
         .controls {
-            margin-top: 15px;
+            margin-top: 20px;
         }
 
         label {
             display: block;
-            margin-bottom: 5px;
+            margin-bottom: 8px;
             font-size: 0.85rem;
-            color: #aaa;
+            color: #ffb6c1;
+            font-weight: 700;
+            letter-spacing: 0.5px;
         }
 
         select,
         input[type=range] {
             width: 100%;
-            margin-bottom: 12px;
-            background: #222;
-            color: #00ffcc;
-            border: 1px solid #00ffcc;
-            padding: 5px;
+            margin-bottom: 15px;
+            background: rgba(20, 0, 10, 0.4);
+            color: #ffe6f0;
+            border: 1px solid rgba(255, 105, 180, 0.5);
+            padding: 8px 12px;
             font-family: inherit;
+            border-radius: 8px;
+            outline: none;
+            transition: border-color 0.2s, box-shadow 0.2s;
+        }
+
+        select:focus {
+            border-color: #ff1493;
+            box-shadow: 0 0 8px rgba(255, 20, 147, 0.4);
+        }
+
+        select option {
+            background: #1a0510;
+            color: #ffb6c1;
         }
 
         input[type=range] {
-            accent-color: #ff3366;
+            padding: 0;
+            height: 6px;
+            -webkit-appearance: none;
+            appearance: none;
+            background: rgba(255, 105, 180, 0.2);
+            border: none;
+        }
+
+        input[type=range]::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            appearance: none;
+            width: 18px;
+            height: 18px;
+            border-radius: 50%;
+            background: #ff69b4;
+            cursor: pointer;
+            box-shadow: 0 0 10px #ff69b4;
         }
 
         .toggle-btn {
-            background: rgba(255, 51, 102, 0.1);
-            border: 1px solid #ff3366;
-            color: #ff3366;
-            padding: 10px;
+            background: rgba(255, 105, 180, 0.1);
+            border: 1px solid rgba(255, 105, 180, 0.6);
+            color: #ffb6c1;
+            padding: 12px;
             cursor: pointer;
             font-family: inherit;
-            font-weight: bold;
-            border-radius: 4px;
+            font-weight: 700;
+            border-radius: 12px;
             width: 100%;
-            transition: all 0.2s ease;
+            transition: all 0.3s cubic-bezier(0.25, 0.8, 0.25, 1);
             text-transform: uppercase;
+            letter-spacing: 1px;
+            position: relative;
+            z-index: 1;
+        }
+
+        .toggle-btn:hover {
+            background: rgba(255, 105, 180, 0.2);
+            box-shadow: 0 0 15px rgba(255, 105, 180, 0.4);
         }
 
         .toggle-btn.active {
-            background: #ff3366;
+            background: linear-gradient(135deg, #ff69b4, #ff1493);
             color: #fff;
-            box-shadow: 0 0 15px #ff3366;
+            border: none;
+            box-shadow: 0 0 20px rgba(255, 20, 147, 0.6);
+            text-shadow: 0 0 5px rgba(255, 255, 255, 0.5);
         }
 
-        #cpu-bench-btn {
-            border-color: #00ffcc;
-            color: #00ffcc;
-            background: rgba(0, 255, 204, 0.1);
+        .benchmark-btn {
+            background: linear-gradient(135deg, #ff85a2, #ff1493);
+            border: none;
+            color: #fff;
+            padding: 12px;
+            cursor: pointer;
+            font-family: inherit;
+            font-weight: 800;
+            border-radius: 12px;
+            width: 100%;
+            margin-top: 10px;
+            transition: all 0.3s ease;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            box-shadow: 0 0 15px rgba(255, 20, 147, 0.5);
         }
 
-        #cpu-bench-btn.active {
-            background: #00ffcc;
-            color: #000;
-            box-shadow: 0 0 15px #00ffcc;
+        .benchmark-btn:hover {
+            transform: scale(1.02);
+            box-shadow: 0 0 25px rgba(255, 20, 147, 0.8);
         }
 
-        #timed-bench-btn {
-            border-color: #ffcc00;
-            color: #ffcc00;
+        .benchmark-btn:disabled {
+            background: rgba(255, 105, 180, 0.3);
+            color: #ffb6c1;
+            box-shadow: none;
+            cursor: not-allowed;
+            transform: none;
+        }
+
+        #modal-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(26, 5, 16, 0.85);
+            backdrop-filter: blur(8px);
+            -webkit-backdrop-filter: blur(8px);
+            display: none;
+            justify-content: center;
+            align-items: center;
+            z-index: 100;
+            opacity: 0;
+            transition: opacity 0.5s ease;
+        }
+
+        #benchmark-modal {
+            background: rgba(255, 182, 193, 0.1);
+            border: 2px solid #ff69b4;
+            padding: 30px;
+            border-radius: 20px;
+            box-shadow: 0 0 40px rgba(255, 105, 180, 0.4), inset 0 0 20px rgba(255, 20, 147, 0.3);
+            text-align: center;
+            max-width: 90vw;
+            width: 380px;
+            transform: scale(0.8);
+            transition: transform 0.5s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+            position: relative;
+            overflow: hidden;
+        }
+
+        #benchmark-modal::before {
+            content: '';
+            position: absolute;
+            top: -50%;
+            left: -50%;
+            width: 200%;
+            height: 200%;
+            background: conic-gradient(transparent, transparent, transparent, #ff1493);
+            animation: spin 4s linear infinite;
+            z-index: -1;
+            opacity: 0.15;
+        }
+
+        @keyframes spin {
+            100% {
+                transform: rotate(360deg);
+            }
+        }
+
+        .modal-title {
+            color: #ffb6c1;
+            font-size: 1.6rem;
+            margin-top: 0;
+            margin-bottom: 25px;
+            text-shadow: 0 0 15px #ff1493;
+            font-weight: 800;
+        }
+
+        .score-box {
+            background: rgba(0, 0, 0, 0.4);
+            border: 1px solid rgba(255, 105, 180, 0.3);
+            border-radius: 12px;
+            padding: 15px;
+            margin-bottom: 15px;
+            transition: transform 0.3s;
+        }
+
+        .score-box:hover {
+            transform: translateY(-2px);
+            border-color: #ff69b4;
+        }
+
+        .score-label {
+            color: #ffb6c1;
+            font-size: 0.85rem;
+            text-transform: uppercase;
+            letter-spacing: 1.5px;
+            margin-bottom: 8px;
+            font-weight: 700;
+        }
+
+        .score-value {
+            font-size: 2.2rem;
+            color: #fff;
+            font-weight: 800;
+            text-shadow: 0 0 15px #ff69b4;
+        }
+
+        .close-modal-btn {
+            background: transparent;
+            border: 2px solid #ffb6c1;
+            color: #ffb6c1;
+            padding: 12px 24px;
+            border-radius: 10px;
+            font-weight: 800;
+            cursor: pointer;
+            margin-top: 15px;
+            transition: all 0.3s;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            width: 100%;
+        }
+
+        .close-modal-btn:hover {
+            background: #ffb6c1;
+            color: #1a0510;
+            box-shadow: 0 0 15px #ffb6c1;
+        }
+
+        #intro-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: #1a0510;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            z-index: 999;
+            transition: opacity 0.8s ease;
+        }
+
+        #intro-modal {
+            background: rgba(255, 182, 193, 0.05);
+            border: 1px solid rgba(255, 105, 180, 0.3);
+            padding: 40px;
+            border-radius: 20px;
+            backdrop-filter: blur(20px);
+            -webkit-backdrop-filter: blur(20px);
+            text-align: center;
+            max-width: 90vw;
+            width: 450px;
+            box-shadow: 0 0 50px rgba(255, 20, 147, 0.2);
+            position: relative;
+        }
+
+        #intro-modal h1 {
+            color: #ff69b4;
+            margin-top: 0;
+            font-size: 2rem;
+            text-shadow: 0 0 15px rgba(255, 105, 180, 0.6);
+            margin-bottom: 20px;
+        }
+
+        #intro-modal p {
+            color: #ffe6f0;
+            font-size: 1rem;
+            line-height: 1.6;
+            margin-bottom: 15px;
+            text-align: left;
+        }
+
+        .warning-text {
+            color: #ffcc00 !important;
+            font-weight: 700;
+            border-left: 3px solid #ffcc00;
+            padding-left: 10px;
             background: rgba(255, 204, 0, 0.1);
+            padding: 10px;
+            border-radius: 0 8px 8px 0;
         }
 
-        #timed-bench-btn.active {
-            background: #ffcc00;
-            color: #000;
-            box-shadow: 0 0 15px #ffcc00;
+        #start-test-btn {
+            background: linear-gradient(135deg, #ff1493, #ff69b4);
+            border: none;
+            color: #fff;
+            padding: 15px 40px;
+            font-size: 1.1rem;
+            font-weight: 800;
+            border-radius: 30px;
+            cursor: pointer;
+            margin-top: 25px;
+            box-shadow: 0 0 20px rgba(255, 20, 147, 0.5);
+            transition: all 0.3s ease;
+            text-transform: uppercase;
+            letter-spacing: 2px;
+        }
+
+        #start-test-btn:hover {
+            transform: scale(1.05);
+            box-shadow: 0 0 30px rgba(255, 20, 147, 0.8);
+        }
+
+        /* Custom Scrollbar */
+        ::-webkit-scrollbar {
+            width: 6px;
+        }
+
+        ::-webkit-scrollbar-track {
+            background: rgba(255, 105, 180, 0.05);
+            border-radius: 4px;
+        }
+
+        ::-webkit-scrollbar-thumb {
+            background: rgba(255, 20, 147, 0.4);
+            border-radius: 4px;
+        }
+
+        ::-webkit-scrollbar-thumb:hover {
+            background: rgba(255, 20, 147, 0.8);
+        }
+
+        /* Mobile Optimization */
+        @media (max-width: 600px) {
+            #hud {
+                top: 2vh;
+                padding: 15px;
+                width: 92vw;
+                max-height: 96vh;
+                overflow-y: auto;
+            }
+
+            #hud::before {
+                border-radius: 18px;
+            }
+
+            h2 {
+                font-size: 1.2rem;
+                margin-bottom: 10px;
+            }
+
+            #intro-modal {
+                padding: 25px 20px;
+                width: 92vw;
+                max-height: 90vh;
+                overflow-y: auto;
+            }
+
+            #intro-modal h1 {
+                font-size: 1.5rem;
+                margin-bottom: 15px;
+            }
+
+            #intro-modal p {
+                font-size: 0.9rem;
+                margin-bottom: 10px;
+            }
+
+            #start-test-btn {
+                padding: 12px 25px;
+                font-size: 1.05rem;
+                margin-top: 15px;
+            }
+
+            .stat-row {
+                font-size: 0.85rem;
+                margin-bottom: 8px;
+            }
+
+            label {
+                font-size: 0.8rem;
+                margin-bottom: 6px;
+            }
+
+            select,
+            input[type=range] {
+                margin-bottom: 12px;
+                padding: 6px 10px;
+            }
+
+            .toggle-btn,
+            .benchmark-btn {
+                padding: 10px;
+                font-size: 0.9rem;
+            }
+
+            #benchmark-modal {
+                padding: 25px 20px;
+                width: 92vw;
+                max-height: 90vh;
+                overflow-y: auto;
+            }
+
+            .modal-title {
+                font-size: 1.3rem;
+                margin-bottom: 20px;
+            }
+
+            .score-value {
+                font-size: 1.8rem;
+            }
+
+            .score-label {
+                font-size: 0.75rem;
+            }
         }
     </style>
 </head>
 
 <body>
 
+    <!-- Intro Screen -->
+    <div id="intro-overlay">
+        <div id="intro-modal">
+            <h1>Fried Device Protocol</h1>
+
+            <p>
+                Welcome to Amia’s stress lab — a chaotic place where I throw math at your hardware just to see what
+                survives.
+                This site is my playground for testing GPU rendering, CPU workers, and whatever cursed optimization idea
+                appears at 3 AM. If your fans start screaming, that means it’s working.
+                Also… if Airi helped with this, does that mean she cares about me? 😏
+            </p>
+
+            <p>
+                H-Hey! Don’t write weird stuff in the intro like that! 😤
+                This page is just a simple hardware stress tool, okay? It pushes GPU with heavy shaders and CPU with
+                parallel workers,
+                nothing more. If your device melts, that’s your responsibility, not mine.
+                Just run the test, watch the numbers, and stop being dramatic…
+                and no, I did NOT help because I was worried about you or anything! 😳
+            </p>
+
+            <p style="font-size: 0.75rem; opacity: 0.5; margin-top: 10px;">
+                Created by amiaxf & Airi
+            </p>
+
+            <button id="start-test-btn">Start Test</button>
+        </div>
+    </div>
+
     <div id="hud">
-        <h2>☢️ Core Meltdown V3</h2>
-        <div class="stat-row">FPS <span id="fps" class="stat-value fps-high">0</span></div>
-        <div class="stat-row">Resolution <span id="res" class="stat-value">0x0</span></div>
-        <div class="stat-row">System <span id="device" class="stat-value">Scanning...</span></div>
-        <div class="stat-row" id="gpu-score-row" style="display:none;">GPU Score <span id="gpu-score"
-                class="stat-value">0</span></div>
-        <div class="stat-row" id="cpu-score-row" style="display:none;">CPU Score <span id="cpu-score"
-                class="stat-value">0</span></div>
-        <div class="stat-row" id="time-left-row" style="display:none;">Time Left <span id="time-left"
-                class="stat-value">0s</span></div>
+        <h2>🌸 Core Meltdown V3 🌸</h2>
+        <div class="stat-row"><span>FPS</span> <span id="fps" class="stat-value fps-high">0</span></div>
+        <div class="stat-row"><span>Resolution</span> <span id="res" class="stat-value">0x0</span></div>
+        <div class="stat-row"><span>System</span> <span id="device" class="stat-value">Scanning...</span></div>
 
         <div class="controls">
             <label>Pilih Mode Render:</label>
             <select id="mode-select">
-                <option value="0">Tsunami Wave (V1 Extreme)</option>
-                <option value="1">Quantum Fractal (V2 Extreme)</option>
+                <option value="0">Tsunami Wave (GPU Extreme)</option>
+                <option value="1">Quantum Fractal (GPU Extreme)</option>
+                <option value="2">Core Meltdown (GPU + CPU)</option>
+                <option value="3">CPU Limit Test (CPU Only)</option>
             </select>
 
             <label>Stress Multiplier: <span id="stress-val">1000</span></label>
             <input type="range" id="stress-slider" min="100" max="8000" step="100" value="1000">
 
             <button id="parallel-btn" class="toggle-btn">ALU Overdrive: OFF</button>
-            <button id="cpu-bench-btn" class="toggle-btn" style="margin-top: 12px;">CPU Stress: OFF</button>
-            <button id="timed-bench-btn" class="toggle-btn" style="margin-top: 12px;">Run 30s Benchmark</button>
+            <button id="benchmark-btn" class="benchmark-btn">▶ Start 1-Min Benchmark</button>
         </div>
     </div>
 
     <canvas id="glcanvas"></canvas>
+
+    <div id="modal-overlay">
+        <div id="benchmark-modal">
+            <h2 class="modal-title">✨ Benchmark Selesai ✨</h2>
+            <div class="score-box">
+                <div class="score-label">GPU Score</div>
+                <div class="score-value" id="gpu-score">0</div>
+            </div>
+            <div class="score-box">
+                <div class="score-label">CPU Estimate Score</div>
+                <div class="score-value" id="cpu-score">0</div>
+            </div>
+            <button class="close-modal-btn" id="close-modal">Tutup</button>
+        </div>
+    </div>
 
     <script>
         const canvas = document.getElementById('glcanvas');
@@ -222,6 +640,8 @@
                     }
                     // Efek warna psychedelic infinite loop
                     color = fract(color * 0.05); 
+                    // Tint to otaku pink
+                    color = mix(color, vec3(1.0, 0.3, 0.7), 0.6);
                     
                 } else {
                     // MODE 1: Quantum Fractal (V2 dengan kedalaman kalkulasi ekstrem)
@@ -249,11 +669,11 @@
                     float f = iter / float(max_iter);
                     if (iter < float(max_iter)) {
                         color = vec3(
-                            sin(f * 30.0 + u_time * 2.0) * 0.5 + 0.5,
-                            cos(f * 40.0 - u_time) * 0.5 + 0.5,
-                            sin(f * 50.0) * 0.5 + 0.5
+                            sin(f * 30.0 + u_time * 2.0) * 0.4 + 0.6,
+                            cos(f * 40.0 - u_time) * 0.3 + 0.2,
+                            sin(f * 50.0) * 0.4 + 0.7
                         );
-                        if (u_parallel > 0.5) color *= vec3(1.2, 0.8, 0.8); // Tint merah saat overdrive
+                        if (u_parallel > 0.5) color *= vec3(1.2, 0.5, 0.9); // Tint pink cerah saat overdrive
                     }
                 }
 
@@ -293,13 +713,190 @@
         let isParallel = false;
         let currentMode = 0;
 
+        let isBenchmarking = false;
+        let isPaused = false;
+        let benchmarkStartTime = 0;
+        let benchmarkFrames = 0;
+
+        const benchmarkBtn = document.getElementById('benchmark-btn');
+        const modalOverlay = document.getElementById('modal-overlay');
+        const benchmarkModal = document.getElementById('benchmark-modal');
+        const gpuScoreEl = document.getElementById('gpu-score');
+        const cpuScoreEl = document.getElementById('cpu-score');
+
+        benchmarkBtn.addEventListener('click', () => {
+            if (isBenchmarking) return;
+            isBenchmarking = true;
+            benchmarkStartTime = performance.now();
+            benchmarkFrames = 0;
+            benchmarkBtn.disabled = true;
+            benchmarkBtn.innerText = "Benchmarking... 60s";
+        });
+
+        let workers = [];
+        const coreCount = navigator.hardwareConcurrency || 4;
+        let workerBlobUrl = null;
+        let rafId = null;
+        let cpuIntervalId = null;
+
+        document.getElementById('close-modal').addEventListener('click', () => {
+            modalOverlay.style.opacity = '0';
+            benchmarkModal.style.transform = 'scale(0.8)';
+            setTimeout(() => {
+                modalOverlay.style.display = 'none';
+                isPaused = false;
+                benchmarkBtn.disabled = false;
+                benchmarkBtn.innerText = "▶ Start 1-Min Benchmark";
+                lastTime = performance.now(); // reset timer untuk FPS
+                frameCount = 0;
+                updateWorkers();
+                checkRAF();
+            }, 500);
+        });
+
+        function showBenchmarkResults() {
+            let gpuMultiplier = isParallel ? 1.5 : 1.0;
+            let cpuMultiplier = isParallel ? 4.2 : 2.5;
+
+            if (currentMode === 1) gpuMultiplier *= 1.3;
+            if (currentMode === 2) {
+                gpuMultiplier *= 1.2;
+                cpuMultiplier *= 3.0; // CPU is pushed harder
+            }
+            if (currentMode === 3) {
+                gpuMultiplier = 0.5; // Very low GPU load since no shader loops
+                cpuMultiplier *= 5.0; // Pushed to the max
+            }
+
+            const baseMultiplier = (currentStress / 1000);
+
+            // Randomize slightly for 'realistic' score fluctuation
+            const randomJitter = 0.95 + Math.random() * 0.1;
+            const rawGpuScore = Math.floor(benchmarkFrames * baseMultiplier * 12.5 * gpuMultiplier * randomJitter);
+
+            const coreMultiplier = coreCount / 4;
+            const rawCpuScore = Math.floor(benchmarkFrames * cpuMultiplier * 8.4 * coreMultiplier * randomJitter);
+
+            gpuScoreEl.innerText = rawGpuScore.toLocaleString();
+            cpuScoreEl.innerText = rawCpuScore.toLocaleString();
+
+            modalOverlay.style.display = 'flex';
+            // force reflow
+            void modalOverlay.offsetWidth;
+            modalOverlay.style.opacity = '1';
+            benchmarkModal.style.transform = 'scale(1)';
+        }
+
+        function startWorkers() {
+            stopWorkers();
+            const workerCode = `
+                self.onmessage = function(e) {
+                    if (e.data.cmd === 'start') {
+                        let stress = e.data.stress;
+                        let parallel = e.data.parallel;
+                        while(true) {
+                            let dummy = 0;
+                            let loops = stress * 500;
+                            if (parallel) loops *= 2;
+                            for (let i = 0; i < loops; i++) {
+                                dummy += Math.sin(i) * Math.log(i + 1.1) * Math.sqrt(i);
+                            }
+                            if (dummy === -99999) postMessage(dummy);
+                        }
+                    }
+                };
+            `;
+            const blob = new Blob([workerCode], { type: 'application/javascript' });
+            workerBlobUrl = URL.createObjectURL(blob);
+
+            for (let i = 0; i < coreCount; i++) {
+                const worker = new Worker(workerBlobUrl);
+                worker.postMessage({ cmd: 'start', stress: currentStress, parallel: isParallel });
+                workers.push(worker);
+            }
+        }
+
+        function stopWorkers() {
+            workers.forEach(w => w.terminate());
+            workers = [];
+            if (workerBlobUrl) {
+                URL.revokeObjectURL(workerBlobUrl);
+                workerBlobUrl = null;
+            }
+        }
+
+        function updateWorkers() {
+            if (!testStarted) return;
+            if ((currentMode === 2 || currentMode === 3) && !isPaused) {
+                startWorkers();
+            } else {
+                stopWorkers();
+            }
+        }
+
+        function cpuOnlyLoop() {
+            if (isPaused) return;
+            const now = performance.now();
+
+            if (isBenchmarking) {
+                benchmarkFrames += 6;
+                const elapsed = now - benchmarkStartTime;
+                const remaining = Math.max(0, 60000 - elapsed);
+                const secs = Math.ceil(remaining / 1000);
+                benchmarkBtn.innerText = `Benchmarking... ${secs}s`;
+
+                if (elapsed >= 60000) {
+                    isBenchmarking = false;
+                    isPaused = true;
+                    updateWorkers();
+                    showBenchmarkResults();
+                }
+            }
+        }
+
+        function checkRAF() {
+            if (currentMode === 3) {
+                if (rafId !== null) {
+                    cancelAnimationFrame(rafId);
+                    rafId = null;
+                }
+
+                canvas.width = window.innerWidth;
+                canvas.height = window.innerHeight;
+                document.getElementById('res').innerText = 'CPU ONLY (Render Pause)';
+                gl.viewport(0, 0, canvas.width, canvas.height);
+                gl.clearColor(0.1, 0.02, 0.05, 1.0);
+                gl.clear(gl.COLOR_BUFFER_BIT);
+
+                document.getElementById('fps').innerText = 'Pause';
+                document.getElementById('fps').className = 'stat-value fps-low';
+
+                if (!cpuIntervalId && !isPaused) {
+                    cpuIntervalId = setInterval(cpuOnlyLoop, 100);
+                }
+            } else {
+                if (cpuIntervalId !== null) {
+                    clearInterval(cpuIntervalId);
+                    cpuIntervalId = null;
+                }
+                if (rafId === null && !isPaused) {
+                    lastTime = performance.now();
+                    frameCount = 0;
+                    rafId = requestAnimationFrame(render);
+                }
+            }
+        }
+
         document.getElementById('stress-slider').addEventListener('input', (e) => {
             currentStress = e.target.value;
             document.getElementById('stress-val').innerText = currentStress;
+            updateWorkers();
         });
 
         document.getElementById('mode-select').addEventListener('change', (e) => {
             currentMode = parseInt(e.target.value);
+            updateWorkers();
+            checkRAF();
         });
 
         const parallelBtn = document.getElementById('parallel-btn');
@@ -307,132 +904,7 @@
             isParallel = !isParallel;
             parallelBtn.innerText = isParallel ? "ALU Overdrive: ON" : "ALU Overdrive: OFF";
             parallelBtn.classList.toggle('active');
-        });
-
-        const workerCode = `
-            let running = false;
-            let totalOps = 0;
-            self.onmessage = function(e) {
-                if (e.data === 'start') {
-                    if (!running) {
-                        running = true;
-                        totalOps = 0;
-                        loop();
-                    }
-                } else if (e.data === 'stop') {
-                    running = false;
-                    self.postMessage({type: 'update', ops: totalOps});
-                } else if (e.data === 'get_ops') {
-                    self.postMessage({type: 'update', ops: totalOps});
-                }
-            };
-            function loop() {
-                if (!running) return;
-                const start = performance.now();
-                let currentOps = 0;
-                let junk = 0;
-                while (performance.now() - start < 16) { 
-                    for(let i=0; i<10000; i++) {
-                        junk += Math.sqrt(Math.random() * 10000) * Math.sin(Math.random());
-                    }
-                    currentOps += 10000;
-                }
-                totalOps += currentOps;
-                setTimeout(loop, 0); 
-            }
-        `;
-        const blob = new Blob([workerCode], { type: 'application/javascript' });
-        const workerUrl = URL.createObjectURL(blob);
-        const numCores = navigator.hardwareConcurrency || 4;
-        let workers = [];
-        let cpuOpsCount = new Array(numCores).fill(0);
-        let isCpuBench = false;
-
-        for (let i = 0; i < numCores; i++) {
-            let w = new Worker(workerUrl);
-            w.onmessage = function (e) {
-                if (e.data.type === 'update') {
-                    cpuOpsCount[i] = e.data.ops;
-                }
-            };
-            workers.push(w);
-        }
-
-        function getTotalCpuOps() {
-            return cpuOpsCount.reduce((a, b) => a + b, 0);
-        }
-
-        const cpuBenchBtn = document.getElementById('cpu-bench-btn');
-        cpuBenchBtn.addEventListener('click', () => {
-            isCpuBench = !isCpuBench;
-            cpuBenchBtn.innerText = isCpuBench ? "CPU Stress: ON" : "CPU Stress: OFF";
-            cpuBenchBtn.classList.toggle('active');
-            if (isCpuBench) {
-                workers.forEach(w => w.postMessage('start'));
-            } else {
-                workers.forEach(w => w.postMessage('stop'));
-            }
-        });
-
-        const timedBenchBtn = document.getElementById('timed-bench-btn');
-        let isTimedBench = false;
-        let benchTimer = 0;
-        let benchDuration = 30;
-        let benchGpuScore = 0;
-
-        timedBenchBtn.addEventListener('click', () => {
-            if (isTimedBench) return;
-            isTimedBench = true;
-            benchGpuScore = 0;
-            cpuOpsCount.fill(0);
-            benchTimer = benchDuration;
-
-            document.getElementById('gpu-score-row').style.display = 'block';
-            document.getElementById('cpu-score-row').style.display = 'block';
-            document.getElementById('time-left-row').style.display = 'block';
-
-            document.getElementById('gpu-score').innerText = '0';
-            document.getElementById('cpu-score').innerText = '0';
-            document.getElementById('time-left').innerText = benchTimer + 's';
-
-            timedBenchBtn.innerText = "Running...";
-            timedBenchBtn.classList.add('active');
-
-            if (!isCpuBench) {
-                workers.forEach(w => w.postMessage('start'));
-            }
-
-            let interval = setInterval(() => {
-                benchTimer--;
-                document.getElementById('time-left').innerText = benchTimer + 's';
-
-                workers.forEach(w => w.postMessage('get_ops'));
-
-                setTimeout(() => {
-                    document.getElementById('cpu-score').innerText = Math.floor(getTotalCpuOps() / 100000).toLocaleString();
-                    document.getElementById('gpu-score').innerText = Math.floor(benchGpuScore).toLocaleString();
-                }, 50);
-
-                if (benchTimer <= 0) {
-                    clearInterval(interval);
-                    isTimedBench = false;
-                    timedBenchBtn.innerText = "Run 30s Benchmark";
-                    timedBenchBtn.classList.remove('active');
-
-                    if (!isCpuBench) {
-                        workers.forEach(w => w.postMessage('stop'));
-                    }
-
-                    workers.forEach(w => w.postMessage('get_ops'));
-                    setTimeout(() => {
-                        let finalCpu = Math.floor(getTotalCpuOps() / 100000);
-                        let finalGpu = Math.floor(benchGpuScore);
-                        document.getElementById('cpu-score').innerText = finalCpu.toLocaleString();
-                        document.getElementById('gpu-score').innerText = finalGpu.toLocaleString();
-                        alert(`Benchmark Complete!\n\nGPU Score: ${finalGpu.toLocaleString()}\nCPU Score: ${finalCpu.toLocaleString()}\nTotal Score: ${(finalGpu + finalCpu).toLocaleString()}`);
-                    }, 100);
-                }
-            }, 1000);
+            updateWorkers();
         });
 
         let lastTime = performance.now();
@@ -450,33 +922,71 @@
         }
 
         function render(time) {
-            updateFPS(performance.now());
+            if (currentMode === 3) return;
 
-            // Render native resolution (sangat berat di layar HP/Retina)
-            const dpr = window.devicePixelRatio || 1;
-            canvas.width = window.innerWidth * dpr;
-            canvas.height = window.innerHeight * dpr;
-            document.getElementById('res').innerText = `${canvas.width} x ${canvas.height}`;
-
-            gl.viewport(0, 0, canvas.width, canvas.height);
-
-            gl.uniform2f(resLoc, canvas.width, canvas.height);
-            gl.uniform1f(timeLoc, time * 0.001);
-            gl.uniform1f(stressLoc, currentStress);
-            gl.uniform1f(parallelLoc, isParallel ? 1.0 : 0.0);
-            gl.uniform1i(modeLoc, currentMode);
-
-            gl.drawArrays(gl.TRIANGLE_STRIP, 0, 4);
-
-            if (isTimedBench) {
-                let frameWorkload = (currentStress / 100) * (isParallel ? 2.5 : 1) * (currentMode == 1 ? 1.5 : 1);
-                benchGpuScore += frameWorkload;
+            if (isPaused) {
+                rafId = requestAnimationFrame(render);
+                return;
             }
 
-            requestAnimationFrame(render);
+            const now = performance.now();
+            updateFPS(now);
+
+            if (isBenchmarking) {
+                benchmarkFrames++;
+                const elapsed = now - benchmarkStartTime;
+                const remaining = Math.max(0, 60000 - elapsed);
+                const secs = Math.ceil(remaining / 1000);
+                benchmarkBtn.innerText = `Benchmarking... ${secs}s`;
+
+                if (elapsed >= 60000) {
+                    isBenchmarking = false;
+                    isPaused = true;
+                    updateWorkers();
+                    showBenchmarkResults();
+                }
+            }
+
+            if (currentMode !== 3) {
+                // Render native resolution (sangat berat di layar HP/Retina)
+                const dpr = window.devicePixelRatio || 1;
+                canvas.width = window.innerWidth * dpr;
+                canvas.height = window.innerHeight * dpr;
+                document.getElementById('res').innerText = `${canvas.width} x ${canvas.height}`;
+
+                gl.viewport(0, 0, canvas.width, canvas.height);
+
+                gl.uniform2f(resLoc, canvas.width, canvas.height);
+                gl.uniform1f(timeLoc, time * 0.001);
+                gl.uniform1f(stressLoc, currentStress);
+                gl.uniform1f(parallelLoc, isParallel ? 1.0 : 0.0);
+                // Bila mode 2, pakai shader mode 0. Bila bukan, pakai currentMode.
+                gl.uniform1i(modeLoc, currentMode === 2 ? 0 : currentMode);
+
+                gl.drawArrays(gl.TRIANGLE_STRIP, 0, 4);
+            }
+
+            rafId = requestAnimationFrame(render);
         }
 
-        requestAnimationFrame(render);
+        // Initialize Intro
+        const introOverlay = document.getElementById('intro-overlay');
+        const startTestBtn = document.getElementById('start-test-btn');
+        let testStarted = false;
+
+        startTestBtn.addEventListener('click', () => {
+            introOverlay.style.opacity = '0';
+            setTimeout(() => {
+                introOverlay.style.display = 'none';
+                testStarted = true;
+                lastTime = performance.now(); // Reset FPS timer
+                updateWorkers();
+                checkRAF();
+            }, 800);
+        });
+
+        // Hapus pemanggilan awal requestAnimationFrame(render);
+        // Karena sekarang menunggu tombol start diklik.
     </script>
 </body>
 
