@@ -1,613 +1,483 @@
 <!DOCTYPE html>
 <html lang="id">
+
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
-    <title>Endless Runner: Fathan vs Panca</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>GPU Ultimate Stress Test V3</title>
     <style>
-        body { margin: 0; overflow: hidden; background-color: #87CEEB; font-family: 'Segoe UI', sans-serif; }
-        #game-container { position: absolute; top: 0; left: 0; width: 100%; height: 100%; }
-        
-        /* UI Overlay */
-        #ui-layer {
-            position: absolute; top: 0; left: 0; width: 100%; height: 100%;
-            pointer-events: none; /* Biarkan klik tembus ke canvas kecuali tombol */
-            display: flex; flex-direction: column; justify-content: space-between;
-        }
-        
-        #score-board {
-            padding: 20px; font-size: 24px; color: white; font-weight: bold;
-            text-shadow: 2px 2px 0 #000;
+        body {
+            margin: 0;
+            overflow: hidden;
+            background-color: #000;
+            color: #00ffcc;
+            font-family: 'Courier New', Courier, monospace;
+            user-select: none;
         }
 
-        #start-screen, #game-over-screen {
-            position: absolute; top: 0; left: 0; width: 100%; height: 100%;
-            background: rgba(0,0,0,0.7);
-            display: flex; flex-direction: column; align-items: center; justify-content: center;
-            pointer-events: auto;
-            color: white;
-            z-index: 10;
+        canvas {
+            display: block;
+            width: 100vw;
+            height: 100vh;
         }
 
-        .hidden { display: none !important; }
-        
-        h1 { font-size: 40px; margin-bottom: 10px; color: #00ffff; text-shadow: 0 0 10px #00ffff; text-align: center;}
-        p { font-size: 18px; color: #ddd; text-align: center; max-width: 80%; }
-        
-        button {
-            padding: 15px 40px; font-size: 20px; margin-top: 20px;
-            background: #ff0055; color: white; border: none; border-radius: 50px;
-            cursor: pointer; box-shadow: 0 0 15px #ff0055; transition: transform 0.2s;
+        #hud {
+            position: absolute;
+            top: 15px;
+            left: 15px;
+            background: rgba(10, 10, 10, 0.85);
+            border: 1px solid #ff3366;
+            padding: 15px;
+            border-radius: 8px;
+            box-shadow: 0 0 20px rgba(255, 51, 102, 0.4);
+            backdrop-filter: blur(8px);
+            width: 300px;
+            max-width: 85vw;
         }
-        button:active { transform: scale(0.95); }
 
-        /* Mobile Controls Hint */
-        .controls-hint { font-size: 14px; opacity: 0.8; margin-top: 10px; }
+        h2 {
+            margin: 0 0 10px 0;
+            font-size: 1.2rem;
+            color: #ff3366;
+            text-transform: uppercase;
+            text-shadow: 0 0 5px #ff3366;
+        }
+
+        .stat-row {
+            margin-bottom: 8px;
+            font-size: 0.9rem;
+            border-bottom: 1px solid #333;
+            padding-bottom: 4px;
+        }
+
+        .stat-value {
+            font-weight: bold;
+            color: #fff;
+            float: right;
+        }
+
+        .fps-high {
+            color: #00ffcc;
+        }
+
+        .fps-med {
+            color: #ffcc00;
+        }
+
+        .fps-low {
+            color: #ff3366;
+            text-shadow: 0 0 5px #ff3366;
+        }
+
+        .controls {
+            margin-top: 15px;
+        }
+
+        label {
+            display: block;
+            margin-bottom: 5px;
+            font-size: 0.85rem;
+            color: #aaa;
+        }
+
+        select,
+        input[type=range] {
+            width: 100%;
+            margin-bottom: 12px;
+            background: #222;
+            color: #00ffcc;
+            border: 1px solid #00ffcc;
+            padding: 5px;
+            font-family: inherit;
+        }
+
+        input[type=range] {
+            accent-color: #ff3366;
+        }
+
+        .toggle-btn {
+            background: rgba(255, 51, 102, 0.1);
+            border: 1px solid #ff3366;
+            color: #ff3366;
+            padding: 10px;
+            cursor: pointer;
+            font-family: inherit;
+            font-weight: bold;
+            border-radius: 4px;
+            width: 100%;
+            transition: all 0.2s ease;
+            text-transform: uppercase;
+        }
+
+        .toggle-btn.active {
+            background: #ff3366;
+            color: #fff;
+            box-shadow: 0 0 15px #ff3366;
+        }
+
+        #cpu-bench-btn {
+            border-color: #00ffcc;
+            color: #00ffcc;
+            background: rgba(0, 255, 204, 0.1);
+        }
+
+        #cpu-bench-btn.active {
+            background: #00ffcc;
+            color: #000;
+            box-shadow: 0 0 15px #00ffcc;
+        }
+
+        #timed-bench-btn {
+            border-color: #ffcc00;
+            color: #ffcc00;
+            background: rgba(255, 204, 0, 0.1);
+        }
+
+        #timed-bench-btn.active {
+            background: #ffcc00;
+            color: #000;
+            box-shadow: 0 0 15px #ffcc00;
+        }
     </style>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
 </head>
+
 <body>
 
-    <div id="game-container"></div>
+    <div id="hud">
+        <h2>☢️ Core Meltdown V3</h2>
+        <div class="stat-row">FPS <span id="fps" class="stat-value fps-high">0</span></div>
+        <div class="stat-row">Resolution <span id="res" class="stat-value">0x0</span></div>
+        <div class="stat-row">System <span id="device" class="stat-value">Scanning...</span></div>
+        <div class="stat-row" id="gpu-score-row" style="display:none;">GPU Score <span id="gpu-score"
+                class="stat-value">0</span></div>
+        <div class="stat-row" id="cpu-score-row" style="display:none;">CPU Score <span id="cpu-score"
+                class="stat-value">0</span></div>
+        <div class="stat-row" id="time-left-row" style="display:none;">Time Left <span id="time-left"
+                class="stat-value">0s</span></div>
 
-    <div id="ui-layer">
-        <div id="score-board">SCORE: <span id="score">0</span></div>
+        <div class="controls">
+            <label>Pilih Mode Render:</label>
+            <select id="mode-select">
+                <option value="0">Tsunami Wave (V1 Extreme)</option>
+                <option value="1">Quantum Fractal (V2 Extreme)</option>
+            </select>
+
+            <label>Stress Multiplier: <span id="stress-val">1000</span></label>
+            <input type="range" id="stress-slider" min="100" max="8000" step="100" value="1000">
+
+            <button id="parallel-btn" class="toggle-btn">ALU Overdrive: OFF</button>
+            <button id="cpu-bench-btn" class="toggle-btn" style="margin-top: 12px;">CPU Stress: OFF</button>
+            <button id="timed-bench-btn" class="toggle-btn" style="margin-top: 12px;">Run 30s Benchmark</button>
+        </div>
     </div>
 
-    <div id="start-screen">
-        <h1>RUN FATHAN RUN!</h1>
-        <p>Hindari mobil, lompati palang, ambil koin!</p>
-        <p class="controls-hint">Desktop: Panah Keyboard | Mobile: Swipe Layar</p>
-        <button id="start-btn">MAIN SEKARANG</button>
-    </div>
+    <canvas id="glcanvas"></canvas>
 
-    <div id="game-over-screen" class="hidden">
-        <h1>TERTANGKAP PANCA!</h1>
-        <p>Skor Akhir: <span id="final-score">0</span></p>
-        <button id="restart-btn">MAIN LAGI</button>
-    </div>
+    <script>
+        const canvas = document.getElementById('glcanvas');
+        const gl = canvas.getContext('webgl');
 
-<script>
-/**
- * SENIOR GAME DEVELOPER NOTES:
- * Kode ini dirancang modular dalam satu file.
- * 1. AudioSystem: Menangani Web Audio API.
- * 2. GameWorld: Menangani Three.js scene, lights, environment.
- * 3. Player & Entities: Menangani logika karakter.
- * 4. InputManager: Swipe & Keyboard handling.
- * 5. GameLoop: Main update cycle.
- */
+        const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
+        document.getElementById('device').innerText = isMobile ? "Mobile / ARM" : "Desktop / x86";
 
-// --- KONFIGURASI GLOBAL ---
-const CONFIG = {
-    laneWidth: 2.5, // Lebar jalur
-    speedBase: 0.4, // Kecepatan awal
-    speedMax: 0.8,
-    gravity: 0.03,
-    jumpPower: 0.6,
-    colors: {
-        fathan: 0x00ffff, // Neon Blue
-        panca: 0x8b4513,  // Brown
-        coin: 0xffd700,
-        sky: 0x87CEEB,
-        fog: 0xa0d8ef
-    }
-};
+        if (!gl) alert('WebGL Crash atau tidak didukung!');
 
-// --- AUDIO SYSTEM (Synthesizer) ---
-class AudioSynth {
-    constructor() {
-        this.ctx = null;
-        this.isMuted = false;
-    }
+        const vsSource = `
+            attribute vec4 aVertexPosition;
+            void main() { gl_Position = aVertexPosition; }
+        `;
 
-    init() {
-        if (!this.ctx) {
-            this.ctx = new (window.AudioContext || window.webkitAudioContext)();
-            this.bgmOsc = null;
+        // Fragment Shader: Gabungan V1 dan V2 dengan kalkulasi matematika brutal
+        const fsSource = `
+            precision highp float;
+            uniform vec2 u_resolution;
+            uniform float u_time;
+            uniform float u_stress;
+            uniform float u_parallel;
+            uniform int u_mode;
+
+            void main() {
+                vec2 uv = (gl_FragCoord.xy - 0.5 * u_resolution.xy) / u_resolution.y;
+                vec3 color = vec3(0.0);
+                int max_iter = int(u_stress);
+
+                if (u_mode == 0) {
+                    // MODE 0: Tsunami Wave (V1 yang dibuat sangat berat dan visual gila)
+                    vec2 p = uv * 3.0;
+                    for (int i = 0; i < 8000; i++) {
+                        if (i >= max_iter) break;
+                        float fi = float(i);
+                        
+                        // Distorsi ruang
+                        p.x += sin(u_time * 0.15 + p.y * 4.0 + fi * 0.03) * 0.1;
+                        p.y += cos(u_time * 0.25 + p.x * 4.0 + fi * 0.03) * 0.1;
+                        
+                        // Parallel mode menambahkan fungsi Tangen dan Arc Tangen yang berat
+                        if (u_parallel > 0.5) {
+                            p += vec2(tan(u_time * 0.05 + fi * 0.01), atan(p.x, p.y)) * 0.02;
+                        }
+                        
+                        float d = length(p);
+                        color += vec3(sin(d * 8.0 + u_time), cos(d * 12.0 - u_time), sin(d * 16.0 + u_time * 0.5));
+                    }
+                    // Efek warna psychedelic infinite loop
+                    color = fract(color * 0.05); 
+                    
+                } else {
+                    // MODE 1: Quantum Fractal (V2 dengan kedalaman kalkulasi ekstrem)
+                    vec2 c = vec2(sin(u_time * 0.1), cos(u_time * 0.15)) * 0.7;
+                    vec2 z = uv * 2.0;
+                    float iter = 0.0;
+                    
+                    for (int i = 0; i < 8000; i++) {
+                        if (i >= max_iter) break;
+                        
+                        float x = (z.x * z.x - z.y * z.y) + c.x;
+                        float y = (2.0 * z.y * z.x) + c.y;
+                        
+                        // Parallel mode menambahkan Logaritma dan Eksponensial (Sangat berat di ALU GPU)
+                        if (u_parallel > 0.5) {
+                            x += sin(float(i) * 0.1) * log(abs(y) + 1.1) * 0.05;
+                            y += cos(float(i) * 0.1) * exp(-abs(x)) * 0.05;
+                        }
+                        
+                        z = vec2(x, y);
+                        if (dot(z, z) > 20.0) break;
+                        iter++;
+                    }
+                    
+                    float f = iter / float(max_iter);
+                    if (iter < float(max_iter)) {
+                        color = vec3(
+                            sin(f * 30.0 + u_time * 2.0) * 0.5 + 0.5,
+                            cos(f * 40.0 - u_time) * 0.5 + 0.5,
+                            sin(f * 50.0) * 0.5 + 0.5
+                        );
+                        if (u_parallel > 0.5) color *= vec3(1.2, 0.8, 0.8); // Tint merah saat overdrive
+                    }
+                }
+
+                gl_FragColor = vec4(color, 1.0);
+            }
+        `;
+
+        function createShader(gl, type, source) {
+            const shader = gl.createShader(type);
+            gl.shaderSource(shader, source);
+            gl.compileShader(shader);
+            return shader;
         }
-        if (this.ctx.state === 'suspended') this.ctx.resume();
-    }
 
-    playTone(freq, type, duration, vol = 0.1) {
-        if (!this.ctx || this.isMuted) return;
-        const osc = this.ctx.createOscillator();
-        const gain = this.ctx.createGain();
-        osc.type = type;
-        osc.frequency.setValueAtTime(freq, this.ctx.currentTime);
-        gain.gain.setValueAtTime(vol, this.ctx.currentTime);
-        gain.gain.exponentialRampToValueAtTime(0.01, this.ctx.currentTime + duration);
-        osc.connect(gain);
-        gain.connect(this.ctx.destination);
-        osc.start();
-        osc.stop(this.ctx.currentTime + duration);
-    }
+        const shaderProgram = gl.createProgram();
+        gl.attachShader(shaderProgram, createShader(gl, gl.VERTEX_SHADER, vsSource));
+        gl.attachShader(shaderProgram, createShader(gl, gl.FRAGMENT_SHADER, fsSource));
+        gl.linkProgram(shaderProgram);
+        gl.useProgram(shaderProgram);
 
-    playCoin() { this.playTone(1200, 'sine', 0.2, 0.2); this.playTone(1800, 'sine', 0.2, 0.2); }
-    playJump() { this.playTone(300, 'triangle', 0.2, 0.1); }
-    playCrash() { this.playTone(100, 'sawtooth', 0.5, 0.3); }
+        const positions = new Float32Array([-1.0, 1.0, 1.0, 1.0, -1.0, -1.0, 1.0, -1.0]);
+        const positionBuffer = gl.createBuffer();
+        gl.bindBuffer(gl.ARRAY_BUFFER, positionBuffer);
+        gl.bufferData(gl.ARRAY_BUFFER, positions, gl.STATIC_DRAW);
 
-    startBGM() {
-        // Simple beat simulation using intervals (Low budget BGM)
-        if(this.bgmInterval) clearInterval(this.bgmInterval);
-        let beat = 0;
-        this.bgmInterval = setInterval(() => {
-            if(!window.gameActive) return;
-            beat++;
-            if(beat % 4 === 0) this.playTone(150, 'square', 0.1, 0.05); // Kick
-            if(beat % 8 === 4) this.playTone(400, 'sine', 0.1, 0.02); // Hat
-        }, 250);
-    }
-    stopBGM() { clearInterval(this.bgmInterval); }
-}
+        const posLoc = gl.getAttribLocation(shaderProgram, "aVertexPosition");
+        gl.enableVertexAttribArray(posLoc);
+        gl.vertexAttribPointer(posLoc, 2, gl.FLOAT, false, 0, 0);
 
-const audio = new AudioSynth();
+        const resLoc = gl.getUniformLocation(shaderProgram, "u_resolution");
+        const timeLoc = gl.getUniformLocation(shaderProgram, "u_time");
+        const stressLoc = gl.getUniformLocation(shaderProgram, "u_stress");
+        const parallelLoc = gl.getUniformLocation(shaderProgram, "u_parallel");
+        const modeLoc = gl.getUniformLocation(shaderProgram, "u_mode");
 
-// --- HELPER: TEXTURE GENERATOR (Nametags) ---
-function createTextSprite(message, color) {
-    const canvas = document.createElement('canvas');
-    const ctx = canvas.getContext('2d');
-    canvas.width = 512; canvas.height = 256;
-    
-    // Background bubbles (optional, keeping it transparent for clean look)
-    ctx.fillStyle = "rgba(0, 0, 0, 0.5)";
-    ctx.roundRect(56, 56, 400, 144, 20);
-    ctx.fill();
+        let currentStress = 1000;
+        let isParallel = false;
+        let currentMode = 0;
 
-    // Text
-    ctx.font = "Bold 100px Arial";
-    ctx.fillStyle = color;
-    ctx.textAlign = "center";
-    ctx.textBaseline = "middle";
-    ctx.fillText(message, 256, 128);
+        document.getElementById('stress-slider').addEventListener('input', (e) => {
+            currentStress = e.target.value;
+            document.getElementById('stress-val').innerText = currentStress;
+        });
 
-    const texture = new THREE.CanvasTexture(canvas);
-    const material = new THREE.SpriteMaterial({ map: texture, transparent: true });
-    const sprite = new THREE.Sprite(material);
-    sprite.scale.set(4, 2, 1);
-    return sprite;
-}
+        document.getElementById('mode-select').addEventListener('change', (e) => {
+            currentMode = parseInt(e.target.value);
+        });
 
-// --- GAME LOGIC ---
+        const parallelBtn = document.getElementById('parallel-btn');
+        parallelBtn.addEventListener('click', () => {
+            isParallel = !isParallel;
+            parallelBtn.innerText = isParallel ? "ALU Overdrive: ON" : "ALU Overdrive: OFF";
+            parallelBtn.classList.toggle('active');
+        });
 
-// Variabel Global Game
-let scene, camera, renderer;
-let fathan, panca;
-let obstacles = [], coins = [], buildings = [], roadStripes = [];
-let gameSpeed = CONFIG.speedBase;
-let score = 0;
-let animationId;
-let frameCount = 0;
+        const workerCode = `
+            let running = false;
+            let totalOps = 0;
+            self.onmessage = function(e) {
+                if (e.data === 'start') {
+                    if (!running) {
+                        running = true;
+                        totalOps = 0;
+                        loop();
+                    }
+                } else if (e.data === 'stop') {
+                    running = false;
+                    self.postMessage({type: 'update', ops: totalOps});
+                } else if (e.data === 'get_ops') {
+                    self.postMessage({type: 'update', ops: totalOps});
+                }
+            };
+            function loop() {
+                if (!running) return;
+                const start = performance.now();
+                let currentOps = 0;
+                let junk = 0;
+                while (performance.now() - start < 16) { 
+                    for(let i=0; i<10000; i++) {
+                        junk += Math.sqrt(Math.random() * 10000) * Math.sin(Math.random());
+                    }
+                    currentOps += 10000;
+                }
+                totalOps += currentOps;
+                setTimeout(loop, 0); 
+            }
+        `;
+        const blob = new Blob([workerCode], { type: 'application/javascript' });
+        const workerUrl = URL.createObjectURL(blob);
+        const numCores = navigator.hardwareConcurrency || 4;
+        let workers = [];
+        let cpuOpsCount = new Array(numCores).fill(0);
+        let isCpuBench = false;
 
-// Init Three.js
-function init3D() {
-    const container = document.getElementById('game-container');
-
-    // Scene
-    scene = new THREE.Scene();
-    scene.background = new THREE.Color(CONFIG.colors.sky);
-    scene.fog = new THREE.Fog(CONFIG.colors.fog, 20, 90);
-
-    // Camera
-    camera = new THREE.PerspectiveCamera(60, window.innerWidth / window.innerHeight, 0.1, 200);
-    camera.position.set(0, 5, 8);
-    camera.lookAt(0, 2, 0);
-
-    // Renderer
-    renderer = new THREE.WebGLRenderer({ antialias: true });
-    renderer.setSize(window.innerWidth, window.innerHeight);
-    renderer.shadowMap.enabled = true;
-    renderer.shadowMap.type = THREE.PCFSoftShadowMap;
-    container.appendChild(renderer.domElement);
-
-    // Lighting
-    const hemiLight = new THREE.HemisphereLight(0xffffff, 0x444444, 0.6);
-    scene.add(hemiLight);
-
-    const dirLight = new THREE.DirectionalLight(0xffffff, 0.8);
-    dirLight.position.set(10, 20, 10);
-    dirLight.castShadow = true;
-    dirLight.shadow.mapSize.width = 1024;
-    dirLight.shadow.mapSize.height = 1024;
-    dirLight.shadow.camera.left = -20;
-    dirLight.shadow.camera.right = 20;
-    dirLight.shadow.camera.top = 20;
-    dirLight.shadow.camera.bottom = -20;
-    scene.add(dirLight);
-
-    // Ground (Road)
-    const roadGeo = new THREE.PlaneGeometry(50, 200);
-    const roadMat = new THREE.MeshPhongMaterial({ color: 0x333333 });
-    const road = new THREE.Mesh(roadGeo, roadMat);
-    road.rotation.x = -Math.PI / 2;
-    road.position.z = -50;
-    road.receiveShadow = true;
-    scene.add(road);
-
-    // Pembuatan Karakter
-    createPlayer();
-    createChaser();
-
-    // Event Listener Resize
-    window.addEventListener('resize', onWindowResize, false);
-}
-
-// --- KARAKTER: FATHAN ---
-function createPlayer() {
-    // === CATATAN UNTUK PENGGANTIAN MODEL DI MASA DEPAN ===
-    // Jika ingin mengganti dengan GLTF:
-    // 1. Hapus kode MeshGroup di bawah.
-    // 2. Gunakan GLTFLoader untuk load file .glb.
-    // 3. Pastikan model di-add ke `fathan.mesh`.
-    // ======================================================
-
-    const group = new THREE.Group();
-
-    // Body (Neon Blue Box)
-    const geo = new THREE.BoxGeometry(1, 1, 1);
-    const mat = new THREE.MeshStandardMaterial({ color: CONFIG.colors.fathan, emissive: 0x0044aa, emissiveIntensity: 0.5 });
-    const body = new THREE.Mesh(geo, mat);
-    body.position.y = 0.5;
-    body.castShadow = true;
-    group.add(body);
-
-    // Nametag "Fathan"
-    const nameTag = createTextSprite("Fathan", "#00ffff");
-    nameTag.position.set(0, 2, 0);
-    group.add(nameTag);
-
-    scene.add(group);
-
-    fathan = {
-        mesh: group,
-        lane: 0, // -1 (Kiri), 0 (Tengah), 1 (Kanan)
-        targetX: 0,
-        yVelocity: 0,
-        isJumping: false,
-        isRolling: false,
-        originalScaleY: 1
-    };
-}
-
-// --- ANTAGONIS: PANCA ---
-function createChaser() {
-    const group = new THREE.Group();
-
-    // Body (Dog - Red/Brown)
-    const geo = new THREE.BoxGeometry(0.8, 0.6, 1.2);
-    const mat = new THREE.MeshStandardMaterial({ color: CONFIG.colors.panca });
-    const body = new THREE.Mesh(geo, mat);
-    body.position.y = 0.3;
-    body.castShadow = true;
-    group.add(body);
-
-    // Ears (Simple)
-    const earGeo = new THREE.BoxGeometry(0.2, 0.3, 0.2);
-    const ear1 = new THREE.Mesh(earGeo, mat); ear1.position.set(-0.3, 0.7, 0.4);
-    const ear2 = new THREE.Mesh(earGeo, mat); ear2.position.set(0.3, 0.7, 0.4);
-    group.add(ear1); group.add(ear2);
-
-    // Nametag "Panca"
-    const nameTag = createTextSprite("Panca", "#ff4444");
-    nameTag.position.set(0, 1.5, 0);
-    group.add(nameTag);
-
-    scene.add(group);
-
-    panca = {
-        mesh: group,
-        zOffset: 4, // Jarak di belakang player
-        lane: 0,
-        currentX: 0
-    };
-}
-
-// --- OBSTACLES & ENVIRONMENT ---
-
-function spawnObstacle() {
-    // Tipe: 0 = Box Statis, 1 = Mobil
-    const type = Math.random() > 0.5 ? 'car' : 'barrier';
-    const lane = Math.floor(Math.random() * 3) - 1; // -1, 0, 1
-    const xPos = lane * CONFIG.laneWidth;
-    const zPos = -100; // Muncul jauh di depan
-
-    let mesh;
-
-    if (type === 'car') {
-        // Mobil Bergerak
-        const geo = new THREE.BoxGeometry(1.2, 1, 2.5);
-        const mat = new THREE.MeshStandardMaterial({ color: Math.random() * 0xffffff });
-        mesh = new THREE.Mesh(geo, mat);
-        mesh.userData = { type: 'car', speed: 0.2 };
-    } else {
-        // Barrier
-        const geo = new THREE.BoxGeometry(2, 1.5, 0.5);
-        const mat = new THREE.MeshStandardMaterial({ color: 0xff5500 });
-        mesh = new THREE.Mesh(geo, mat);
-        mesh.userData = { type: 'barrier' };
-    }
-
-    mesh.position.set(xPos, 0.5, zPos);
-    mesh.castShadow = true;
-    scene.add(mesh);
-    obstacles.push(mesh);
-}
-
-function spawnCoin() {
-    const lane = Math.floor(Math.random() * 3) - 1;
-    const xPos = lane * CONFIG.laneWidth;
-    
-    // Koin Geometri
-    const geo = new THREE.CylinderGeometry(0.4, 0.4, 0.1, 16);
-    const mat = new THREE.MeshStandardMaterial({ color: CONFIG.colors.coin, metalness: 0.8, roughness: 0.2 });
-    const mesh = new THREE.Mesh(geo, mat);
-    
-    mesh.rotation.x = Math.PI / 2;
-    mesh.position.set(xPos, 1, -100);
-    
-    // Animasi putar disimpan di userData
-    mesh.userData = { rotSpeed: 0.1 };
-    
-    scene.add(mesh);
-    coins.push(mesh);
-}
-
-function spawnBuilding() {
-    // Gedung di kiri (-x) atau kanan (+x)
-    const side = Math.random() > 0.5 ? 1 : -1;
-    const xDist = 6 + Math.random() * 5;
-    const xPos = side * xDist;
-    const height = 5 + Math.random() * 15;
-    
-    const geo = new THREE.BoxGeometry(4, height, 4);
-    const mat = new THREE.MeshStandardMaterial({ color: 0x888888 });
-    const mesh = new THREE.Mesh(geo, mat);
-    
-    mesh.position.set(xPos, height/2, -120);
-    scene.add(mesh);
-    buildings.push(mesh);
-}
-
-// --- INPUT HANDLING (Keyboard & Swipe) ---
-function handleInput(action) {
-    if (!window.gameActive) return;
-
-    if (action === 'left' && fathan.lane > -1) {
-        fathan.lane--;
-    } else if (action === 'right' && fathan.lane < 1) {
-        fathan.lane++;
-    } else if (action === 'up' && !fathan.isJumping) {
-        fathan.yVelocity = CONFIG.jumpPower;
-        fathan.isJumping = true;
-        audio.playJump();
-    } else if (action === 'down' && !fathan.isRolling) {
-        fathan.isRolling = true;
-        // Perkecil karakter
-        fathan.mesh.children[0].scale.y = 0.5;
-        fathan.mesh.children[0].position.y = 0.25;
-        setTimeout(() => {
-            fathan.mesh.children[0].scale.y = 1;
-            fathan.mesh.children[0].position.y = 0.5;
-            fathan.isRolling = false;
-        }, 800);
-    }
-    
-    fathan.targetX = fathan.lane * CONFIG.laneWidth;
-}
-
-// Keyboard Listener
-document.addEventListener('keydown', (e) => {
-    switch(e.key) {
-        case 'ArrowLeft': handleInput('left'); break;
-        case 'ArrowRight': handleInput('right'); break;
-        case 'ArrowUp': handleInput('up'); break;
-        case 'ArrowDown': handleInput('down'); break;
-    }
-});
-
-// Touch/Swipe Listener
-let touchStartX = 0;
-let touchStartY = 0;
-document.addEventListener('touchstart', (e) => {
-    touchStartX = e.changedTouches[0].screenX;
-    touchStartY = e.changedTouches[0].screenY;
-}, false);
-
-document.addEventListener('touchend', (e) => {
-    const touchEndX = e.changedTouches[0].screenX;
-    const touchEndY = e.changedTouches[0].screenY;
-    
-    const diffX = touchEndX - touchStartX;
-    const diffY = touchEndY - touchStartY;
-
-    if (Math.abs(diffX) > Math.abs(diffY)) {
-        // Horizontal
-        if (Math.abs(diffX) > 30) {
-            handleInput(diffX > 0 ? 'right' : 'left');
+        for (let i = 0; i < numCores; i++) {
+            let w = new Worker(workerUrl);
+            w.onmessage = function (e) {
+                if (e.data.type === 'update') {
+                    cpuOpsCount[i] = e.data.ops;
+                }
+            };
+            workers.push(w);
         }
-    } else {
-        // Vertical
-        if (Math.abs(diffY) > 30) {
-            handleInput(diffY > 0 ? 'down' : 'up');
+
+        function getTotalCpuOps() {
+            return cpuOpsCount.reduce((a, b) => a + b, 0);
         }
-    }
-}, false);
 
-// --- UPDATE LOOP ---
-function update() {
-    if (!window.gameActive) return;
-
-    // 1. Update Player Movement (Lerp X)
-    fathan.mesh.position.x += (fathan.targetX - fathan.mesh.position.x) * 0.15;
-
-    // Player Gravity & Jump
-    fathan.mesh.position.y += fathan.yVelocity;
-    if (fathan.mesh.position.y > 0) {
-        fathan.yVelocity -= CONFIG.gravity;
-    } else {
-        fathan.mesh.position.y = 0;
-        fathan.yVelocity = 0;
-        fathan.isJumping = false;
-    }
-
-    // Animasi Lari (Bobbing)
-    if(!fathan.isJumping) {
-        fathan.mesh.children[0].position.y = (fathan.isRolling ? 0.25 : 0.5) + Math.sin(Date.now() * 0.02) * 0.05;
-    }
-
-    // 2. Update Panca (Chaser)
-    // Panca mengejar di lane yang sama tapi sedikit delay
-    panca.currentX += (fathan.mesh.position.x - panca.currentX) * 0.05;
-    panca.mesh.position.set(panca.currentX, 0, fathan.mesh.position.z + panca.zOffset);
-    panca.mesh.children[0].position.y = 0.3 + Math.sin(Date.now() * 0.03) * 0.1; // Lari liar
-
-    // 3. Move World Objects (Illusion of moving forward)
-    // Alih-alih player maju (floating point error resiko), kita gerakkan dunia mundur
-    const moveSpeed = gameSpeed;
-
-    // Update Obstacles
-    for (let i = obstacles.length - 1; i >= 0; i--) {
-        const obj = obstacles[i];
-        obj.position.z += moveSpeed;
-        if (obj.userData.type === 'car') obj.position.z += obj.userData.speed; // Mobil ngebut ke arah kita
-
-        // Collision Check (AABB Sederhana)
-        const dx = Math.abs(obj.position.x - fathan.mesh.position.x);
-        const dz = Math.abs(obj.position.z - fathan.mesh.position.z);
-        const dy = Math.abs(obj.position.y - fathan.mesh.position.y); // Untuk cek lompat/roll
-
-        // Hitbox toleransi
-        if (dz < 1.0 && dx < 0.8) {
-            if (fathan.isJumping && obj.userData.type === 'car' && dy > 0.8) {
-                // Berhasil melompati mobil (opsional logika)
+        const cpuBenchBtn = document.getElementById('cpu-bench-btn');
+        cpuBenchBtn.addEventListener('click', () => {
+            isCpuBench = !isCpuBench;
+            cpuBenchBtn.innerText = isCpuBench ? "CPU Stress: ON" : "CPU Stress: OFF";
+            cpuBenchBtn.classList.toggle('active');
+            if (isCpuBench) {
+                workers.forEach(w => w.postMessage('start'));
             } else {
-                gameOver();
+                workers.forEach(w => w.postMessage('stop'));
+            }
+        });
+
+        const timedBenchBtn = document.getElementById('timed-bench-btn');
+        let isTimedBench = false;
+        let benchTimer = 0;
+        let benchDuration = 30;
+        let benchGpuScore = 0;
+
+        timedBenchBtn.addEventListener('click', () => {
+            if (isTimedBench) return;
+            isTimedBench = true;
+            benchGpuScore = 0;
+            cpuOpsCount.fill(0);
+            benchTimer = benchDuration;
+
+            document.getElementById('gpu-score-row').style.display = 'block';
+            document.getElementById('cpu-score-row').style.display = 'block';
+            document.getElementById('time-left-row').style.display = 'block';
+
+            document.getElementById('gpu-score').innerText = '0';
+            document.getElementById('cpu-score').innerText = '0';
+            document.getElementById('time-left').innerText = benchTimer + 's';
+
+            timedBenchBtn.innerText = "Running...";
+            timedBenchBtn.classList.add('active');
+
+            if (!isCpuBench) {
+                workers.forEach(w => w.postMessage('start'));
+            }
+
+            let interval = setInterval(() => {
+                benchTimer--;
+                document.getElementById('time-left').innerText = benchTimer + 's';
+
+                workers.forEach(w => w.postMessage('get_ops'));
+
+                setTimeout(() => {
+                    document.getElementById('cpu-score').innerText = Math.floor(getTotalCpuOps() / 100000).toLocaleString();
+                    document.getElementById('gpu-score').innerText = Math.floor(benchGpuScore).toLocaleString();
+                }, 50);
+
+                if (benchTimer <= 0) {
+                    clearInterval(interval);
+                    isTimedBench = false;
+                    timedBenchBtn.innerText = "Run 30s Benchmark";
+                    timedBenchBtn.classList.remove('active');
+
+                    if (!isCpuBench) {
+                        workers.forEach(w => w.postMessage('stop'));
+                    }
+
+                    workers.forEach(w => w.postMessage('get_ops'));
+                    setTimeout(() => {
+                        let finalCpu = Math.floor(getTotalCpuOps() / 100000);
+                        let finalGpu = Math.floor(benchGpuScore);
+                        document.getElementById('cpu-score').innerText = finalCpu.toLocaleString();
+                        document.getElementById('gpu-score').innerText = finalGpu.toLocaleString();
+                        alert(`Benchmark Complete!\n\nGPU Score: ${finalGpu.toLocaleString()}\nCPU Score: ${finalCpu.toLocaleString()}\nTotal Score: ${(finalGpu + finalCpu).toLocaleString()}`);
+                    }, 100);
+                }
+            }, 1000);
+        });
+
+        let lastTime = performance.now();
+        let frameCount = 0;
+        const fpsElement = document.getElementById('fps');
+
+        function updateFPS(now) {
+            frameCount++;
+            if (now - lastTime >= 1000) {
+                fpsElement.innerText = frameCount;
+                fpsElement.className = 'stat-value ' +
+                    (frameCount >= 45 ? 'fps-high' : (frameCount >= 25 ? 'fps-med' : 'fps-low'));
+                frameCount = 0; lastTime = now;
             }
         }
 
-        // Cleanup
-        if (obj.position.z > 10) {
-            scene.remove(obj);
-            obstacles.splice(i, 1);
+        function render(time) {
+            updateFPS(performance.now());
+
+            // Render native resolution (sangat berat di layar HP/Retina)
+            const dpr = window.devicePixelRatio || 1;
+            canvas.width = window.innerWidth * dpr;
+            canvas.height = window.innerHeight * dpr;
+            document.getElementById('res').innerText = `${canvas.width} x ${canvas.height}`;
+
+            gl.viewport(0, 0, canvas.width, canvas.height);
+
+            gl.uniform2f(resLoc, canvas.width, canvas.height);
+            gl.uniform1f(timeLoc, time * 0.001);
+            gl.uniform1f(stressLoc, currentStress);
+            gl.uniform1f(parallelLoc, isParallel ? 1.0 : 0.0);
+            gl.uniform1i(modeLoc, currentMode);
+
+            gl.drawArrays(gl.TRIANGLE_STRIP, 0, 4);
+
+            if (isTimedBench) {
+                let frameWorkload = (currentStress / 100) * (isParallel ? 2.5 : 1) * (currentMode == 1 ? 1.5 : 1);
+                benchGpuScore += frameWorkload;
+            }
+
+            requestAnimationFrame(render);
         }
-    }
 
-    // Update Coins
-    for (let i = coins.length - 1; i >= 0; i--) {
-        const coin = coins[i];
-        coin.position.z += moveSpeed;
-        coin.rotation.y += 0.05; // Putar koin
-        
-        // Collision
-        const dx = Math.abs(coin.position.x - fathan.mesh.position.x);
-        const dz = Math.abs(coin.position.z - fathan.mesh.position.z);
-        
-        if (dz < 1.0 && dx < 0.8 && !fathan.isJumping) { // Ambil koin
-            score += 10;
-            updateUI();
-            audio.playCoin();
-            scene.remove(coin);
-            coins.splice(i, 1);
-            continue;
-        }
-
-        if (coin.position.z > 10) {
-            scene.remove(coin);
-            coins.splice(i, 1);
-        }
-    }
-
-    // Update Buildings
-    for (let i = buildings.length - 1; i >= 0; i--) {
-        buildings[i].position.z += moveSpeed;
-        if (buildings[i].position.z > 20) {
-            scene.remove(buildings[i]);
-            buildings.splice(i, 1);
-        }
-    }
-
-    // 4. Spawning Logic
-    frameCount++;
-    if (frameCount % 60 === 0) { // Setiap detik (approx)
-        score += 1;
-        updateUI();
-        if (gameSpeed < CONFIG.speedMax) gameSpeed += 0.0001; // Tambah cepat perlahan
-    }
-
-    if (frameCount % 50 === 0) spawnBuilding(); // Gedung sering
-    
-    // Random spawn rintangan
-    if (frameCount % Math.max(30, 100 - Math.floor(score/10)) === 0) {
-        if (Math.random() > 0.3) spawnObstacle();
-        else spawnCoin();
-    }
-}
-
-function animate() {
-    animationId = requestAnimationFrame(animate);
-    update();
-    renderer.render(scene, camera);
-}
-
-// --- GAME STATE CONTROL ---
-
-function updateUI() {
-    document.getElementById('score').innerText = score;
-}
-
-function startGame() {
-    // Reset Variables
-    score = 0;
-    gameSpeed = CONFIG.speedBase;
-    fathan.lane = 0;
-    fathan.targetX = 0;
-    fathan.mesh.position.set(0,0,0);
-    panca.currentX = 0;
-    
-    // Clear Old Objects
-    obstacles.forEach(o => scene.remove(o)); obstacles = [];
-    coins.forEach(c => scene.remove(c)); coins = [];
-    buildings.forEach(b => scene.remove(b)); buildings = [];
-
-    // Audio Start
-    audio.init();
-    audio.startBGM();
-
-    // UI
-    document.getElementById('start-screen').classList.add('hidden');
-    document.getElementById('game-over-screen').classList.add('hidden');
-    
-    window.gameActive = true;
-    frameCount = 0;
-}
-
-function gameOver() {
-    window.gameActive = false;
-    audio.playCrash();
-    audio.stopBGM();
-    
-    // Animasi Panca menangkap Fathan
-    panca.mesh.position.z = fathan.mesh.position.z - 0.5;
-    panca.mesh.position.x = fathan.mesh.position.x;
-    
-    document.getElementById('final-score').innerText = score;
-    document.getElementById('game-over-screen').classList.remove('hidden');
-}
-
-function onWindowResize() {
-    camera.aspect = window.innerWidth / window.innerHeight;
-    camera.updateProjectionMatrix();
-    renderer.setSize(window.innerWidth, window.innerHeight);
-}
-
-// Entry Point
-init3D();
-animate();
-
-// Button Listeners
-document.getElementById('start-btn').addEventListener('click', startGame);
-document.getElementById('restart-btn').addEventListener('click', startGame);
-
-</script>
+        requestAnimationFrame(render);
+    </script>
 </body>
+
 </html>
